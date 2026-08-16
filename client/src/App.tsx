@@ -7,7 +7,6 @@ type UiState = "idle" | "loading" | "success" | "error";
 export default function App() {
   const [state, setState] = useState<UiState>("idle");
   const [categories, setCategories] = useState<Category[]>([]);
-  void categories;
 
   async function handleCheck() {
     // TODO(Issue 4): set loading, call checkSystem(), then either
@@ -18,7 +17,7 @@ export default function App() {
       const result = await checkSystem();
       setCategories(result.categories);
       setState("success");
-    } catch (error) {
+    } catch {
       setState("error");
     }
   }
@@ -38,7 +37,7 @@ export default function App() {
           <p>
             System Status: <strong>Online</strong>
           </p>
-          <p>Categories:</p>
+          <p>Supported Request Categories:</p>
           <ul>
             {categories.map((c) => (
               <li key={c.id}>{c.name}</li>

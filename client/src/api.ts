@@ -16,16 +16,24 @@ export interface SystemStatus {
 //        return { online: true, categories }.
 // Throwing on failure lets the UI show a single Offline/error state.
 export async function checkSystem(): Promise<SystemStatus> {
-  const response = await fetch(`${API_URL}/api/health`);
+  const healthResponse = await fetch(`${API_URL}/api/health`);
 
-  if (!response.ok) {
+  if (!healthResponse.ok) {
     throw new Error("Unable to connect to TokTickIT API");
   }
 
-  await response.json();
+  await healthResponse.json();
+
+  const categoriesResponse = await fetch(`${API_URL}/api/categories`);
+
+  if (!categoriesResponse.ok) {
+    throw new Error("Unable to load categories");
+  }
+
+  const categories: Category[] = await categoriesResponse.json();
 
   return {
     online: true,
-    categories: [],
+    categories,
   };
 }
