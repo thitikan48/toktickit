@@ -10,11 +10,6 @@ export interface SystemStatus {
   categories: Category[];
 }
 
-// Issue 2 + Issue 4 — call the backend.
-// Steps: fetch `${API_URL}/api/health`; if not ok, throw.
-//        then fetch `${API_URL}/api/categories`; if not ok, throw.
-//        return { online: true, categories }.
-// Throwing on failure lets the UI show a single Offline/error state.
 export async function checkSystem(): Promise<SystemStatus> {
   const healthResponse = await fetch(`${API_URL}/api/health`);
 
@@ -44,11 +39,81 @@ export interface DevelopmentRequester {
   email: string;
 }
 
-export async function getDevelopmentRequesters(): Promise<DevelopmentRequester[]> {
+export async function getDevelopmentRequesters(): Promise<
+  DevelopmentRequester[]
+> {
   const response = await fetch(`${API_URL}/api/development-requesters`);
 
   if (!response.ok) {
     throw new Error("Unable to load Development Requesters");
+  }
+
+  return response.json();
+}
+
+export interface RelatedSystem {
+  id: number;
+  name: string;
+}
+
+export async function getCategories(): Promise<Category[]> {
+  const response = await fetch(`${API_URL}/api/categories`);
+
+  if (!response.ok) {
+    throw new Error("Unable to load categories");
+  }
+
+  return response.json();
+}
+
+export async function getRelatedSystems(): Promise<RelatedSystem[]> {
+  const response = await fetch(`${API_URL}/api/related-systems`);
+
+  if (!response.ok) {
+    throw new Error("Unable to load related systems");
+  }
+
+  return response.json();
+}
+
+export type RequestedPriority = "LOW" | "MEDIUM" | "HIGH";
+
+export interface CreateTicketInput {
+  requesterId: number;
+  categoryId: number;
+  relatedSystemId: number;
+  summary: string;
+  description: string;
+  requestedPriority: RequestedPriority;
+}
+
+export interface CreatedTicket {
+  id: number;
+  ticketNumber: string;
+  requesterId: number;
+  categoryId: number;
+  relatedSystemId: number;
+  summary: string;
+  description: string;
+  requestedPriority: RequestedPriority;
+  currentStatus: "NEW";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function createTicket(
+  input: CreateTicketInput
+): Promise<CreatedTicket> {
+  const response = await fetch(`${API_URL}/api/tickets`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    throw new Error("Unable to create ticket");
   }
 
   return response.json();

@@ -24,6 +24,8 @@ model Category {
   id        Int      @id @default(autoincrement())
   name      String   @unique
   createdAt DateTime @default(now())
+
+  tickets Ticket[]
 }
 
 model RequesterUser {
@@ -33,4 +35,47 @@ model RequesterUser {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  tickets Ticket[]
+}
+
+enum RequestedPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TicketStatus {
+  NEW
+}
+
+model RelatedSystem {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  tickets Ticket[]
+}
+
+model Ticket {
+  id                Int               @id @default(autoincrement())
+  ticketNumber      String            @unique
+  requesterId       Int
+  categoryId        Int
+  relatedSystemId   Int
+  summary           String            @db.VarChar(120)
+  description       String
+  requestedPriority RequestedPriority
+  currentStatus     TicketStatus      @default(NEW)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  requester     RequesterUser @relation(fields: [requesterId], references: [id])
+  category      Category      @relation(fields: [categoryId], references: [id])
+  relatedSystem RelatedSystem @relation(fields: [relatedSystemId], references: [id])
+
+  @@index([requesterId, createdAt])
+  @@index([requesterId, currentStatus])
+  @@index([requesterId, categoryId])
 }
