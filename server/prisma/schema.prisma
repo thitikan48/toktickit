@@ -25,3 +25,12 @@ model Category {
   name      String   @unique
   createdAt DateTime @default(now())
 }
+
+model RequesterUser {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

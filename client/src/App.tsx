@@ -1,60 +1,302 @@
-import { useState } from "react";
-import { checkSystem, Category } from "./api.js";
+import { useEffect, useState } from "react";
+import {
+  DevelopmentRequester,
+  getDevelopmentRequesters,
+} from "./api.js";
 
-// UI states you must handle for Issue 4: idle, loading, success, error.
-type UiState = "idle" | "loading" | "success" | "error";
+type RequesterState = "loading" | "ready" | "empty" | "error";
 
 export default function App() {
-  const [state, setState] = useState<UiState>("idle");
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [requesters, setRequesters] = useState<DevelopmentRequester[]>([]);
+  const [selectedRequesterId, setSelectedRequesterId] = useState("");
+  const [currentRequester, setCurrentRequester] =
+    useState<DevelopmentRequester | null>(null);
+  const [state, setState] = useState<RequesterState>("loading");
 
-  async function handleCheck() {
-    // TODO(Issue 4): set loading, call checkSystem(), then either
-    //   - success: store categories and show Online + the list, or
-    //   - error: show Offline + a useful message.
+  useEffect(() => {
+    loadRequesters();
+  }, []);
+
+  async function loadRequesters() {
     setState("loading");
+
     try {
-      const result = await checkSystem();
-      setCategories(result.categories);
-      setState("success");
+      const data = await getDevelopmentRequesters();
+      setRequesters(data);
+
+      if (data.length === 0) {
+        setCurrentRequester(null);
+        setState("empty");
+        return;
+      }
+
+      const storedRequesterId = sessionStorage.getItem(
+        "developmentRequesterId"
+      );
+
+      if (storedRequesterId) {
+        const storedRequester = data.find(
+          (requester) => requester.id === Number(storedRequesterId)
+        );
+
+        if (storedRequester) {
+          setCurrentRequester(storedRequester);
+          setSelectedRequesterId(String(storedRequester.id));
+        } else {
+          sessionStorage.removeItem("developmentRequesterId");
+        }
+      }
+
+      setState("ready");
     } catch {
       setState("error");
     }
   }
 
+  function handleContinue() {
+    if (!selectedRequesterId) {
+      return;
+    }
+
+    const requester = requesters.find(
+      (item) => item.id === Number(selectedRequesterId)
+    );
+
+    if (!requester) {
+      return;
+    }
+
+    sessionStorage.setItem(
+      "developmentRequesterId",
+      selectedRequesterId
+    );
+
+    setCurrentRequester(requester);
+  }
+
+  function handleChangeRequester() {
+    sessionStorage.removeItem("developmentRequesterId");
+    setCurrentRequester(null);
+    setSelectedRequesterId("");
+  }
+
+  if (currentRequester) {
+    return (
+      <main
+        className="min-vh-100"
+        style={{ backgroundColor: "#F5F7F6" }}
+      >
+        <header
+          className="text-white"
+          style={{ backgroundColor: "#006B3C" }}
+        >
+          <div
+            className="container d-flex justify-content-between align-items-center py-3"
+            style={{ maxWidth: 1200 }}
+          >
+            <strong className="fs-5">TokTickIT</strong>
+
+            <div className="d-flex align-items-center gap-3">
+              <span>{currentRequester.name}</span>
+
+              <button
+                type="button"
+                className="btn btn-light btn-sm"
+                onClick={handleChangeRequester}
+              >
+                Change Requester
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <section
+          className="container py-5"
+          style={{ maxWidth: 1200 }}
+        >
+          <h1 className="h3">TokTickIT Requester</h1>
+
+          <p>
+            Current Development Requester:{" "}
+            <strong>{currentRequester.name}</strong>
+          </p>
+        </section>
+      </main>
+    );
+  }
+
   return (
-    <div className="container py-5" style={{ maxWidth: 640 }}>
-      <h1 className="h3 mb-4">
-        TokTickIT <span className="text-success">IT Service Desk</span>
-      </h1>
-
-      <button className="btn btn-success" onClick={handleCheck} disabled={state === "loading"}>
-        {state === "loading" ? "Loading…" : "Check System"}
-      </button>
-
-      {state === "success" && (
-        <div className="mt-4">
-          <p>
-            System Status: <strong>Online</strong>
-          </p>
-          <p>Supported Request Categories:</p>
-          <ul>
-            {categories.map((c) => (
-              <li key={c.id}>{c.name}</li>
-            ))}
-          </ul>
+    <main
+      className="min-vh-100"
+      style={{ backgroundColor: "#F5F7F6" }}
+    >
+      <header
+        className="text-white"
+        style={{ backgroundColor: "#006B3C" }}
+      >
+        <div
+          className="container py-3"
+          style={{ maxWidth: 1200 }}
+        >
+          <strong className="fs-5">TokTickIT</strong>
         </div>
-      )}
+      </header>
 
-      {state === "error" && (
-        <div className="mt-4">
-          <p>
-            System Status: <strong>Offline</strong>
-          </p>
-          <p className="text-danger">Unable to connect to TokTickIT API</p>
-        </div>
-      )}
-      {/* TODO(Issue 4): render loading / success (Online + categories) / error (Offline) states. */}
-    </div>
+      <div className="container py-5">
+        <section
+          className="card shadow-sm mx-auto overflow-hidden"
+          style={{
+            maxWidth: 680,
+            border: "1px solid #D6E0DA",
+            borderRadius: 12,
+          }}
+        >
+          <div className="p-4 p-md-5">
+            <div className="text-center mb-4">
+              <div
+                className="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
+                style={{
+                  width: 60,
+                  height: 60,
+                  backgroundColor: "#EAF6EF",
+                  color: "#006B3C",
+                  fontSize: 26,
+                }}
+                aria-hidden="true"
+              >
+                👤
+              </div>
+
+              <h1 className="h3 mb-2">
+                Select Development Requester
+              </h1>
+
+              <p className="text-muted mb-0">
+                Choose a requester to test TokTickIT features in Lab 2.
+              </p>
+            </div>
+
+            {state === "loading" && (
+              <div className="text-center py-4" aria-busy="true">
+                <div
+                  className="spinner-border spinner-border-sm me-2"
+                  role="status"
+                  aria-hidden="true"
+                />
+                Loading Requesters...
+              </div>
+            )}
+
+            {state === "error" && (
+              <div
+                role="alert"
+                className="p-3 rounded mb-3"
+                style={{
+                  backgroundColor: "#FEF3F2",
+                  border: "1px solid #B42318",
+                }}
+              >
+                <p className="text-danger mb-2">
+                  Unable to load Development Requesters.
+                </p>
+
+                <button
+                  type="button"
+                  className="btn btn-outline-danger btn-sm"
+                  onClick={loadRequesters}
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+
+            {state === "empty" && (
+              <div
+                className="p-3 rounded"
+                style={{
+                  backgroundColor: "#FFFAEB",
+                  border: "1px solid #B54708",
+                }}
+              >
+                No active Development Requesters are available.
+              </div>
+            )}
+
+            {state === "ready" && (
+              <>
+                <label
+                  htmlFor="requester"
+                  className="form-label fw-semibold"
+                >
+                  Development Requester{" "}
+                  <span className="text-danger">*</span>
+                </label>
+
+                <select
+                  id="requester"
+                  className="form-select mb-3"
+                  style={{ minHeight: 44 }}
+                  value={selectedRequesterId}
+                  onChange={(event) =>
+                    setSelectedRequesterId(event.target.value)
+                  }
+                >
+                  <option value="">Select a requester</option>
+
+                  {requesters.map((requester) => (
+                    <option
+                      key={requester.id}
+                      value={requester.id}
+                    >
+                      {requester.name}
+                    </option>
+                  ))}
+                </select>
+
+                <div
+                  className="p-2 px-3 rounded mb-3"
+                  style={{
+                    backgroundColor: "#EAF6EF",
+                    color: "#006B3C",
+                    border: "1px solid #D6E0DA",
+                  }}
+                >
+                  Only active requesters are available.
+                </div>
+
+                <div
+                  className="p-3 rounded mb-4"
+                  style={{
+                    backgroundColor: "#FFFAEB",
+                    border: "1px solid #B54708",
+                  }}
+                >
+                  <strong style={{ color: "#B54708" }}>
+                    Lab 2 testing only
+                  </strong>
+
+                  <p className="mb-0 mt-1" style={{ color: "#66756D" }}>
+                    This requester selection is temporary. Real login and
+                    authentication will be introduced in Lab 3.
+                  </p>
+                </div>
+
+                <div className="d-flex justify-content-end">
+                  <button
+                    type="button"
+                    className="btn text-white px-4"
+                    style={{ backgroundColor: "#006B3C" }}
+                    disabled={!selectedRequesterId}
+                    onClick={handleContinue}
+                  >
+                    Continue
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </section>
+      </div>
+    </main>
   );
 }
