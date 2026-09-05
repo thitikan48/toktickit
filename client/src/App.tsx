@@ -3,8 +3,10 @@ import {
   DevelopmentRequester,
   getDevelopmentRequesters,
 } from "./api.js";
+import CreateTicket from "./CreateTicket.js";
 
 type RequesterState = "loading" | "ready" | "empty" | "error";
+type AppScreen = "home" | "create";
 
 export default function App() {
   const [requesters, setRequesters] = useState<DevelopmentRequester[]>([]);
@@ -12,6 +14,7 @@ export default function App() {
   const [currentRequester, setCurrentRequester] =
     useState<DevelopmentRequester | null>(null);
   const [state, setState] = useState<RequesterState>("loading");
+  const [screen, setScreen] = useState<AppScreen>("home");
 
   useEffect(() => {
     loadRequesters();
@@ -72,12 +75,14 @@ export default function App() {
     );
 
     setCurrentRequester(requester);
+    setScreen("home");
   }
 
   function handleChangeRequester() {
     sessionStorage.removeItem("developmentRequesterId");
     setCurrentRequester(null);
     setSelectedRequesterId("");
+    setScreen("home");
   }
 
   if (currentRequester) {
@@ -91,12 +96,34 @@ export default function App() {
           style={{ backgroundColor: "#006B3C" }}
         >
           <div
-            className="container d-flex justify-content-between align-items-center py-3"
+            className="container d-flex flex-wrap justify-content-between align-items-center gap-3 py-3"
             style={{ maxWidth: 1200 }}
           >
             <strong className="fs-5">TokTickIT</strong>
 
-            <div className="d-flex align-items-center gap-3">
+            <nav className="d-flex flex-wrap align-items-center gap-2">
+              <button
+                type="button"
+                className={`btn btn-link text-white text-decoration-none px-3 py-2 ${
+                  screen === "home" ? "fw-bold border-bottom border-3" : ""
+                }`}
+                onClick={() => setScreen("home")}
+              >
+                My Tickets
+              </button>
+
+              <button
+                type="button"
+                className={`btn btn-link text-white text-decoration-none px-3 py-2 ${
+                  screen === "create" ? "fw-bold border-bottom border-3" : ""
+                }`}
+                onClick={() => setScreen("create")}
+              >
+                Create Ticket
+              </button>
+            </nav>
+
+            <div className="d-flex flex-wrap align-items-center gap-3">
               <span>{currentRequester.name}</span>
 
               <button
@@ -110,17 +137,28 @@ export default function App() {
           </div>
         </header>
 
-        <section
-          className="container py-5"
-          style={{ maxWidth: 1200 }}
-        >
-          <h1 className="h3">TokTickIT Requester</h1>
+        {screen === "create" ? (
+          <CreateTicket
+            requesterId={currentRequester.id}
+            requesterName={currentRequester.name}
+          />
+        ) : (
+          <section
+            className="container py-5"
+            style={{ maxWidth: 1200 }}
+          >
+            <h1 className="h3">My Tickets</h1>
 
-          <p>
-            Current Development Requester:{" "}
-            <strong>{currentRequester.name}</strong>
-          </p>
-        </section>
+            <p>
+              Current Development Requester:{" "}
+              <strong>{currentRequester.name}</strong>
+            </p>
+
+            <p className="text-muted">
+              My Tickets will be implemented in the next issue.
+            </p>
+          </section>
+        )}
       </main>
     );
   }
@@ -177,7 +215,10 @@ export default function App() {
             </div>
 
             {state === "loading" && (
-              <div className="text-center py-4" aria-busy="true">
+              <div
+                className="text-center py-4"
+                aria-busy="true"
+              >
                 <div
                   className="spinner-border spinner-border-sm me-2"
                   role="status"
@@ -275,7 +316,10 @@ export default function App() {
                     Lab 2 testing only
                   </strong>
 
-                  <p className="mb-0 mt-1" style={{ color: "#66756D" }}>
+                  <p
+                    className="mb-0 mt-1"
+                    style={{ color: "#66756D" }}
+                  >
                     This requester selection is temporary. Real login and
                     authentication will be introduced in Lab 3.
                   </p>

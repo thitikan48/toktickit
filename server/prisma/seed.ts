@@ -57,7 +57,30 @@ async function main() {
     });
   }
 
-  console.log("Seeded TokTickIT categories and development requesters.");
+  const relatedSystems = [
+    "Email",
+    "Campus Wi-Fi",
+    "VPN",
+    "LEB2 App",
+    "Grade Submission App",
+    "Printer",
+    "Corporate Laptop",
+  ];
+
+  for (const name of relatedSystems) {
+    await prisma.relatedSystem.upsert({
+      where: { name },
+      update: {},
+      create: {
+        name,
+        isActive: true,
+      },
+    });
+  }
+
+  console.log(
+    "Seeded TokTickIT categories, development requesters, and related systems."
+  );
 }
 
 main()
