@@ -37,3 +37,19 @@ export async function checkSystem(): Promise<SystemStatus> {
     categories,
   };
 }
+
+export interface DevelopmentRequester {
+  id: number;
+  name: string;
+  email: string;
+}
+
+export async function getDevelopmentRequesters(): Promise<DevelopmentRequester[]> {
+  const response = await fetch(`${API_URL}/api/development-requesters`);
+
+  if (!response.ok) {
+    throw new Error("Unable to load Development Requesters");
+  }
+
+  return response.json();
+}
