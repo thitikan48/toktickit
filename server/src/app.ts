@@ -2,6 +2,7 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import { getPrisma } from "./prisma.js";
 import { attachmentRouter } from "./attachments.js";
+import { generateTicketNumber } from "./ticket-number.js";
 
 void getPrisma;
 
@@ -579,9 +580,8 @@ app.post(
       const year =
         new Date().getFullYear();
 
-      const ticketNumber = `TKT-${year}-${String(
-        nextNumber
-      ).padStart(6, "0")}`;
+      const ticketNumber =
+        generateTicketNumber(year, nextNumber);
 
       const ticket =
         await prisma.ticket.create({

@@ -291,16 +291,16 @@ Where visual indicators are used, the text value remains visible.
 
 Before declaring the UI implementation complete, verify the Requester-facing screens across Desktop (`≥ 992px`), Tablet (`768–991px`), and Mobile (`< 768px`):
 
-- [ ] **Color Tokens Compliance:** Primary Green (`#006B3C`), Secondary Green (`#0B7A46`), Pale Green (`#EAF6EF`), and Page Background (`#F5F7F6`) are used consistently.
-- [ ] **Editable vs. Read-Only Fields:** System-generated or Requester context fields are clearly distinguishable from editable inputs.
-- [ ] **Validation Placement:** Required inputs display understandable validation feedback near the related field.
-- [ ] **Button Hierarchy & Busy States:** Primary, secondary, and removal actions are distinguishable; submission cannot be triggered repeatedly while processing.
-- [ ] **Text Clipping & Label Wrapping:** No clipped labels, unreadable text, or overflowing Attachment filenames.
-- [ ] **Control & Element Overlap:** No overlapping controls, validation messages, or dialogs.
-- [ ] **Horizontal Overflow:** No horizontal page scrolling on Desktop, Tablet, or Mobile.
-- [ ] **Responsive My Tickets:** My Tickets uses a table from Tablet upward and stacked Ticket cards below `768px`.
-- [ ] **Mobile Actions:** Required buttons and controls remain visible and usable on Mobile.
-- [ ] **Attachment States:** Active and Removed Attachments are clearly distinguishable, and removed files do not expose Download.
+- [x] **Color Tokens Compliance:** Primary Green (`#006B3C`), Secondary Green (`#0B7A46`), Pale Green (`#EAF6EF`), and Page Background (`#F5F7F6`) are used consistently.
+- [x] **Editable vs. Read-Only Fields:** System-generated or Requester context fields are clearly distinguishable from editable inputs.
+- [x] **Validation Placement:** Required inputs display understandable validation feedback near the related field.
+- [x] **Button Hierarchy & Busy States:** Primary, secondary, and removal actions are distinguishable; submission cannot be triggered repeatedly while processing.
+- [x] **Text Clipping & Label Wrapping:** No clipped labels, unreadable text, or overflowing Attachment filenames.
+- [x] **Control & Element Overlap:** No overlapping controls, validation messages, or dialogs.
+- [x] **Horizontal Overflow:** No horizontal page scrolling on Desktop, Tablet, or Mobile.
+- [x] **Responsive My Tickets:** My Tickets uses a table from Tablet upward and stacked Ticket cards below `768px`.
+- [x] **Mobile Actions:** Required buttons and controls remain visible and usable on Mobile.
+- [x] **Attachment States:** Active and Removed Attachments are clearly distinguishable, and removed files do not expose Download.
 
 ### 8.2 Screenshot Evidence Paths
 
