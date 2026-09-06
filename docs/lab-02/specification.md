@@ -220,18 +220,18 @@ Base path: `/api`
 
 ## 10. Definition of Done
 
-- [ ] All approved Lab 2 functional requirements (FR-01 to FR-12) are fully implemented.
-- [ ] Development Requester selector functions cleanly and is clearly designated as a testing mechanism only.
-- [ ] Backend ownership authorization (`requesterId`) is enforced on all ticket and attachment endpoints.
-- [ ] Search, filtering (Category, Status, Priority), sorting, and pagination work as specified.
-- [ ] Attachment constraints (types, 5 MB limit, max 5 active, soft-removal with reason, download blocking) are verified.
-- [ ] Database schema, migration, and idempotent seed script (`seed.ts`) run cleanly.
-- [ ] Full compliance with `ui-spec.md` (Zen Green tokens, responsive breakpoints, accessible controls).
-- [ ] Full compliance with `api-spec.md` (endpoints, payload shapes, status codes).
-- [ ] Every Acceptance Criterion (AC-01 to AC-16) is covered by at least one passing automated test in `tests.md`.
-- [ ] Unit, API, UI Component, UI Style, and E2E test suites pass with zero skipped or disabled tests.
-- [ ] Documentation (`README.md`, `specification.md`, `api-spec.md`, `ui-spec.md`, `tests.md`, `reviewer.md`, `ai-use.md`) is complete and up to date.
-- [ ] No excluded scope (passwords, JWT, IT staff workflow, comments, status transitions) is introduced.
+- [x] All approved Lab 2 functional requirements (FR-01 to FR-12) are fully implemented.
+- [x] Development Requester selector functions cleanly and is clearly designated as a testing mechanism only.
+- [x] Backend ownership authorization (`requesterId`) is enforced on all ticket and attachment endpoints.
+- [x] Search, filtering (Category, Status, Priority), sorting, and pagination work as specified.
+- [x] Attachment constraints (types, 5 MB limit, max 5 active, soft-removal with reason, download blocking) are verified.
+- [x] Database schema, migration, and idempotent seed script (`seed.ts`) run cleanly.
+- [x] Full compliance with `ui-spec.md` (Zen Green tokens, responsive breakpoints, accessible controls).
+- [x] Full compliance with `api-spec.md` (endpoints, payload shapes, status codes).
+- [x] Every Acceptance Criterion (AC-01 to AC-16) is covered by at least one passing automated test in `tests.md`.
+- [x] Unit, API, UI Component, UI Style, and E2E test suites pass with zero skipped or disabled tests.
+- [x] Documentation (`README.md`, `specification.md`, `api-spec.md`, `ui-spec.md`, `tests.md`, `reviewer.md`, `ai-use.md`) is complete and up to date.
+- [x] No excluded scope (passwords, JWT, IT staff workflow, comments, status transitions) is introduced.
 
 ## 11. Assumptions and Decisions
 
