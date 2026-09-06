@@ -9,124 +9,140 @@ TokTickIT implements the **Zen Green Design System**, maintaining visual harmony
 | Token Name | Hex Code | Purpose / Intended Usage |
 |---|---|---|
 | **Primary Green** | `#006B3C` | Application header, primary action buttons, brand accents, strong emphasis |
-| **Secondary Green** | `#0B7A46` | Active navigation tabs, focus rings, interactive links, button hover states |
-| **Pale Green** | `#EAF6EF` | Selected rows, soft card highlights, success background badges |
+| **Secondary Green** | `#0B7A46` | Active navigation indicators, interactive accents, button hover states |
+| **Pale Green** | `#EAF6EF` | Soft highlights, status badges, success-related backgrounds |
 | **Page Background** | `#F5F7F6` | Main viewport canvas background |
 | **Surface / Cards** | `#FFFFFF` | Form containers, modal dialogs, data table cards |
 | **Border Neutral** | `#D6E0DA` | Input control borders, card dividers, table horizontal lines |
-| **Main Text** | `#1F3328` | Primary typography, headers, table row content (dark charcoal-green) |
+| **Main Text** | `#1F3328` | Primary typography, headers, table row content |
 | **Muted Text** | `#66756D` | Subtitles, field hints, helper text, timestamps |
 | **Read-only Shading** | `#EEF3F0` | Non-editable and system-generated field backgrounds |
-| **Error** | `#B42318` | Validation messages, invalid input borders, destructive actions |
+| **Error** | `#B42318` | Validation messages, invalid input borders, destructive feedback |
 | **Error Background** | `#FEF3F2` | Form-level error alert banners |
-| **Warning** | `#B54708` | Amber status indicators and informational warning badges |
+| **Warning** | `#B54708` | Warning indicators and informational warning badges |
 | **Warning Background** | `#FFFAEB` | Warning alert callout panels |
-| **Success** | `#067647` | Confirmation checkmarks, success toast messages |
+| **Success** | `#067647` | Success text and confirmation indicators |
 | **Success Background** | `#ECFDF3` | Success confirmation alert banners |
 
-*Accessibility Rule:* Color is never used as the sole indicator of state or meaning. Badges and errors always include clear text descriptions.
+*Accessibility Rule:* Color is not used as the only indicator of state or meaning. Important states also include text labels or messages.
 
 ### 1.2 Typography
-- **Font Family:** Clean sans-serif stack (`Inter`, `system-ui`, `-apple-system`, `Segoe UI`, `sans-serif`).
+
+- **Font Family:** Clean sans-serif stack (`system-ui`, `-apple-system`, `Segoe UI`, `sans-serif`).
 - **Hierarchy:**
-  - Page Title: `28px` / `700` (Bold)
-  - Section Title: `20px` / `600` (Semi-bold)
-  - Card Header / Subheading: `16px` / `600`
-  - Body Text: `14px`–`16px` / `400` (Regular)
-  - Captions / Metadata / Badge: `12px`–`13px` / `500` (Medium)
+  - Page Title: approximately `28px` / bold
+  - Section Title: approximately `20px` / semi-bold
+  - Card Header / Subheading: approximately `16px` / semi-bold
+  - Body Text: approximately `14px–16px`
+  - Captions / Metadata / Badge: approximately `12px–13px`
 
 ### 1.3 Spacing and Elevation
-- **Spacing Scale:** `8px`, `16px`, `24px`, `32px`.
-- **Card Surfaces:** White background (`#FFFFFF`), `1px` border (`#D6E0DA`), `8px` border radius, soft shadow (`box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06)`).
-- **Max Content Width:** Centered container with max width `1200px`.
+
+- **Spacing Scale:** Uses consistent Bootstrap spacing based on approximately `8px`, `16px`, `24px`, and `32px`.
+- **Card Surfaces:** White background, neutral border, rounded corners, and light shadow.
+- **Max Content Width:** Main requester screens use a centered container with a sensible maximum width of approximately `1200px`.
 
 ---
 
 ## 2. Component System and Form Controls
 
 ### 2.1 Form Controls
-- **Labels:** Positioned strictly **above** the input control in semi-bold (`font-weight: 600`).
-- **Required Fields:** Marked with a red asterisk (`*` in `#B42318`) alongside the label text. The asterisk does not replace field-level validation messages.
-- **Editable Controls:** White background (`#FFFFFF`), `1px` neutral border (`#D6E0DA`), min height `44px` for touch accessibility.
-- **Read-only Controls:** Soft gray-green shading (`#EEF3F0`), `1px` subtle border, non-editable text, distinct cursor (`default` or `not-allowed`).
-- **Validation Error State:** Border changes to Error Red (`#B42318`). Error message renders immediately **below** the offending field in `13px` red text.
-- **Focus Indicator:** 2px focus ring using Secondary Green (`#0B7A46`) with `2px` offset.
+
+- **Labels:** Positioned above the related input control and visually emphasized.
+- **Required Fields:** Marked with a red asterisk (`*`). Validation messages are still shown when input is invalid.
+- **Editable Controls:** White background with a clear border and readable text.
+- **Read-only Controls:** Visually distinguishable from editable fields and cannot be modified by the Requester.
+- **Validation Error State:** Invalid fields display nearby validation feedback.
+- **Focus Indicator:** Interactive controls retain a visible browser or Bootstrap focus state.
 
 ### 2.2 Button Hierarchy
-- **Primary Button (`#006B3C`):** White text, bold, `8px` radius. Used for `Continue`, `Submit Ticket`, `Create Ticket`. Hover: `#0B7A46`.
-- **Secondary Button:** White background, `#D6E0DA` border, `#1F3328` text. Used for `Cancel`, `Back to My Tickets`, `Clear Filters`. Hover: `#F5F7F6`.
-- **Destructive Button:** Pale red background (`#FEF3F2`), `#B42318` text and border. Used for `Remove Attachment`.
-- **Busy State:** While processing (e.g., ticket submission or file upload), the button is disabled (`opacity: 0.65; cursor: not-allowed`), displays an animated spinner, and updates visible text (e.g., `Submitting...`).
+
+- **Primary Button:** Primary Green (`#006B3C`) with white text. Used for major actions such as `Continue` and `Submit Ticket`.
+- **Secondary Button:** Light or outlined style. Used for actions such as `Cancel`, `Back to My Tickets`, `Retry`, and `Change Requester`.
+- **Destructive Button:** Visually distinct removal action used for Attachment soft-removal.
+- **Busy State:** While Ticket submission is processing, the submit action is disabled and visible feedback indicates that the request is in progress.
 
 ---
 
 ## 3. Application Shell
 
-The application shell provides the top navigation across all requester screens:
+The application shell provides top navigation across Requester screens.
 
-### Desktop Viewport (`≥ 992px`)
-- **Top Header Bar:** Primary Green (`#006B3C`), height `64px`, white text.
-- **Left:** TokTickIT branding icon and title.
-- **Center / Left-Nav:** Navigation links:
+### Desktop and Tablet (`≥ 768px`)
+
+- **Top Header Bar:** Primary Green (`#006B3C`) with white text.
+- **Brand:** `TokTickIT`.
+- **Navigation:**
   - `My Tickets`
   - `Create Ticket`
-  - Active page is denoted with Pale Green background pill (`#EAF6EF`) and dark text or high-contrast bottom underline.
-- **Right:** Selected Development Requester identity pill (avatar icon, user name) and a secondary button `Change Requester`.
+- The active page is visually indicated.
+- The selected Development Requester and `Change Requester` action remain visible.
 
-### Mobile Viewport (`< 768px`)
-- Responsive header maintaining brand logo and a mobile menu / compact bar.
-- Navigation links stack or collapse into a responsive drawer.
-- Selected Requester identity and `Change Requester` button remain fully visible without horizontal scroll.
+### Mobile (`< 768px`)
+
+- Header content wraps into multiple rows when required.
+- `TokTickIT`, `My Tickets`, and `Create Ticket` remain directly accessible.
+- Selected Requester identity and `Change Requester` remain visible.
+- Header content must not overlap or cause horizontal page scrolling.
 
 ---
 
 ## 4. Screen Specifications
 
 ### 4.1 Development Requester Selection Screen
-Simulated user login screen used for Lab 2 multi-user testing.
 
-- **Layout:** Centered white card (`max-width: 520px`) over `#F5F7F6` canvas.
-- **Title:** "Select Development Requester" with user selection illustration.
-- **Informational Callout (Pale Green `#EAF6EF`):**
-  > "Select a Development Requester to test requester-specific ticket behavior. This is not a login screen. Authentication and role-based access will be introduced in Lab 3."
+Development-only identity selector used for Lab 2 testing.
+
+- **Layout:** Centered white card over the `#F5F7F6` page background.
+- **Title:** `Select Development Requester`.
+- **Testing Context:** The screen explains that the selector is for Lab 2 testing and is not a real login screen.
 - **Form Controls:**
-  - Dropdown: "Development Requester *" showing active users loaded from PostgreSQL.
-  - Action: Primary `Continue` button.
+  - Dropdown: `Development Requester *`
+  - Primary `Continue` button
+
 - **States:**
-  - *Initial:* No user selected; `Continue` disabled.
-  - *Loading:* Dropdown disabled; displays "Loading Requesters...".
-  - *Ready:* Lists all active requesters (`name (email)`).
-  - *Empty:* If 0 active requesters exist, displays: "No active Development Requesters are available."
-  - *Failure:* Error callout with a `Retry` action.
+  - **Initial:** No Requester selected; `Continue` disabled.
+  - **Loading:** Displays `Loading Requesters...`.
+  - **Ready:** Displays active Development Requesters.
+  - **Empty:** Displays `No active Development Requesters are available.`
+  - **Failure:** Displays safe error feedback and a `Retry` action.
 
 ---
 
 ### 4.2 Create Ticket Screen
 
-- **Layout:** Centered card with structured sections:
-- **Top Section — System-Assigned Info (Read-only):**
-  - Ticket Number: Displays placeholder `"Assigned after submission"` in read-only shading (`#EEF3F0`).
-  - Ticket Date: Current formatted date/time (read-only).
-  - Requester: Pre-populated with active requester's name (read-only).
-- **Classification Section:**
-  - Category: Dropdown with active categories.
-  - Related System: Dropdown with active related systems.
-  - Requested Priority: Dropdown (`Low`, `Medium`, `High`).
-- **Problem Details Section:**
-  - Ticket Summary: Text input (`5–120` chars). Helper counter below.
-  - Description: Multiline textarea (`10–4000` chars), min height `140px`.
-- **Attachments Zone:**
-  - Drag-and-drop or file picker button.
-  - Helper note: `"Allowed: JPG, PNG, WEBP, PDF • Max 5 MB per file • Max 5 active attachments"`.
-  - Selected files list showing filename, formatted file size, and remove-from-selection button.
-- **Action Footer:**
-  - Secondary `Cancel` button (navigates to My Tickets).
+- **Layout:** Centered Ticket form using responsive Bootstrap grid behavior.
+
+- **System-Assigned Information:**
+  - Ticket Number: displays `Assigned after submission`.
+  - Ticket Date: displays the current Ticket date as read-only information.
+  - Requester: displays the selected Development Requester's name.
+
+- **Classification:**
+  - Category
+  - Related System
+  - Requested Priority (`Low`, `Medium`, `High`)
+
+- **Problem Details:**
+  - Ticket Summary: required text input, `5–120` characters.
+  - Description: required multiline input, `10–4000` characters.
+
+- **Attachments:**
+  - File picker for optional Attachments.
+  - Allowed types: JPG/JPEG, PNG, WEBP, PDF.
+  - Maximum size: 5 MB per file.
+  - Maximum: 5 active Attachments.
+  - Selected files are shown before submission and can be removed from the selection.
+
+- **Actions:**
   - Primary `Submit Ticket` button.
+
 - **States:**
-  - *Validation Failure:* Field borders turn red; messages appear below inputs; user inputs are retained.
-  - *Submitting:* Button disabled with spinner and `Submitting...` text; prevents duplicate clicks.
-  - *Success:* Success banner showing official generated Ticket Number (`TKT-YYYY-XXXXXX`) with actions `View Ticket` or `Back to My Tickets`.
-  - *API Failure:* Error banner shown; form fields remain populated for retry.
+  - **Validation Failure:** Related field feedback is displayed and entered values remain available.
+  - **Submitting:** Submit action is disabled while the request is processing.
+  - **Success:** Success message displays the generated official Ticket Number and provides a `Create Another Ticket` action.
+  - **API Failure:** Safe error feedback is displayed and entered form values remain available.
+  - **Partial Attachment Failure:** If the Ticket is created but a later Attachment upload fails, Ticket creation remains successful and the Attachment failure is reported.
 
 ---
 
@@ -134,75 +150,114 @@ Simulated user login screen used for Lab 2 multi-user testing.
 
 - **Top Filter Toolbar:**
   - Page Heading: `My Tickets`
-  - Search input: Placeholder `"Search by ticket number, summary, or description..."`
-  - Dropdowns:
-    - Category: `"All Categories"` + active categories
-    - Requested Priority: `"All Priorities"` (`Low`, `Medium`, `High`)
-    - Current Status: `"All Statuses"` (`New`)
-  - Sort: Sort by Created Date (`Newest First` / `Oldest First`)
-  - Action: `Clear Filters` button
-  - Action: Primary `+ Create Ticket` button
-- **Desktop Table (`≥ 992px`):**
-  - Columns: `Ticket No.` | `Created Date` | `Summary` | `Category` | `Requested Priority` | `Current Status`
-  - Row interaction: Clicking Ticket Number or row navigates to Ticket Detail.
+  - Search input: Ticket Number or Summary
+  - Category filter
+  - Status filter (`New`)
+  - Requested Priority filter (`Low`, `Medium`, `High`)
+  - Sort: `Newest first` / `Oldest first`
+
+- **Desktop and Tablet Table (`≥ 768px`):**
+  - Columns:
+    - Ticket Number
+    - Summary
+    - Category
+    - Status
+    - Priority
+    - Created
+    - Open action
+  - Each Ticket row provides an `Open` button.
+
 - **Mobile Card View (`< 768px`):**
-  - Responsive cards stacking vertically. Each card displays Ticket Number header, Created Date, Summary excerpt, Category, Priority badge, Status badge, and a `View Details` touch target.
-- **Pagination Footer:**
-  - Showing `"Page X of Y (Z tickets)"`.
-  - Page Size Selector: Dropdown allowing the user to select items per page (`5`, `10`, `25`, `50`, defaulting to `10`). Changing the page size resets the current page index to 1.
-  - `Previous` and `Next` buttons (disabled when on page boundaries).
+  - Tickets are displayed as stacked cards.
+  - Each card displays:
+    - Ticket Number
+    - Current Status
+    - Summary
+    - Category
+    - Priority
+    - Created Date
+    - Full-width `Open` button
+
+- **Pagination:**
+  - Uses 10 Tickets per page in the current implementation.
+  - `Previous` and `Next` navigation is shown when multiple pages exist.
+  - Page changes retain the active ownership, search, filter, and sort context.
+
 - **States:**
-  - *Loading:* Skeleton loader rows or centered spinner.
-  - *Empty:* "You have not created any tickets yet." with a primary `Create Ticket` button.
-  - *No Results:* "No tickets match your search or filters." with a `Clear Filters` button.
-  - *Failure:* Error banner with a `Retry` button.
+  - **Loading:** Centered loading indicator.
+  - **Empty:** Displays an empty state when the selected Requester has no Tickets.
+  - **No Results:** Displays a no-results message when search or filters match no owned Tickets.
+  - **Failure:** Displays safe Ticket-loading error feedback.
 
 ---
 
 ### 4.4 Requester Ticket Detail Screen (View Mode)
 
-- **Navigation & Breadcrumb:**
-  - Breadcrumb: `My Tickets > Ticket Details` on the left.
-  - Action: Secondary button `← Back to My Tickets` on the right.
+- **Navigation:**
+  - Provides a `Back to My Tickets` action.
+
 - **Header:**
-  - Ticket Number header (e.g., `TKT-2026-000101`).
-  - Current Status badge (`NEW`).
-- **Ticket Information Card (Read-only):**
-  - Two-column metadata grid: Ticket Date, Requester, Category, Related System, Requested Priority, Current Status. All fields styled with read-only shading (`#EEF3F0`).
-  - Summary and Full Description formatted in clear, readable typography.
+  - Displays the official Ticket Number.
+  - Displays Current Status.
+
+- **Ticket Information:**
+  - Ticket Date
+  - Requester
+  - Category
+  - Related System
+  - Requested Priority
+  - Current Status
+  - Ticket Summary
+  - Description
+
+All Ticket information is read-only.
+
 - **Attachments Section:**
-  - Header: `Attachments (X/5 active)`
-  - Active Attachments Table / List:
-    - Filename, size (KB/MB), upload timestamp.
-    - `Download` button (triggers download/preview).
-    - Destructive `Remove` button.
-  - Removed Attachments List (Soft-Removed):
-    - Displayed in muted styling (`#66756D`).
-    - Badge: `Removed`.
-    - Shows removal timestamp and removal reason.
-    - Download and preview buttons are completely disabled / omitted.
-  - Empty State: When 0 attachments exist, displays *"No attachments uploaded for this ticket yet."*
-  - `+ Add Attachment` button: Enabled when active attachments < 5; opens upload modal or file picker. When active attachments reach 5, displays helper text *"Maximum active attachments (5/5) reached"*.
+  - Displays active Attachment count (`X/5`).
+  - Provides `+ Add Attachment` when another active Attachment may be added.
+  - Active Attachments show:
+    - Filename
+    - File size
+    - Upload timestamp
+    - `Download`
+    - `Remove`
+  - Removed Attachments show:
+    - Filename and retained metadata
+    - `Removed` state
+    - Removal timestamp
+    - Removal reason
+  - Removed Attachments do not provide a Download action.
+  - An empty state is displayed when no Attachments exist.
+
 - **Soft-Removal Confirmation Dialog:**
-  - Modal with backdrop.
-  - Title: `"Confirm Attachment Removal"`
-  - Text: `"Are you sure you want to remove <filename>? This action cannot be undone."`
-  - Required Input: `"Removal Reason *"` textarea (must be non-empty, 5–255 characters).
-  - Actions: Secondary `Cancel` button, Destructive `Confirm Removal` button.
+  - Shows the Attachment filename being removed.
+  - Includes required `Removal Reason *` textarea.
+  - Removal Reason is trimmed and must not be empty.
+  - Actions:
+    - `Cancel`
+    - `Confirm Removal`
+
 - **Scope Exclusion Note:**
-  - Per Lab Sheet section 4.2 & 8.5: Public Comments, Internal Notes, Service Actions, Event Log, IT Staff controls, and Resolution Summary shown in the illustrative Figure 1 are strictly excluded from Lab 2.
+  - Public Comments, Internal Notes, Service Actions, Event Log, IT Staff controls, and Resolution Summary are not implemented in Lab 2.
 
 ---
 
-## 5. Status and Priority Badges
+## 5. Status and Priority Presentation
 
-### 5.1 Requested Priority Badges
-- **LOW:** Neutral slate/gray-green background (`#E2E8F0`), dark text (`#334155`).
-- **MEDIUM:** Pale amber background (`#FEF3C7`), dark amber text (`#92400E`).
-- **HIGH:** Pale red background (`#FEE2E2`), dark red text (`#991B1B`).
+### 5.1 Requested Priority
 
-### 5.2 Current Status Badges
-- **NEW:** Pale Green background (`#EAF6EF`), Primary Green text (`#006B3C`), `1px` border (`#006B3C`).
+Requested Priority is displayed using readable text values:
+
+- `LOW` → Low
+- `MEDIUM` → Medium
+- `HIGH` → High
+
+Where visual indicators are used, the text value remains visible.
+
+### 5.2 Current Status
+
+- `NEW` is displayed as `New`.
+- Pale Green (`#EAF6EF`) and Primary Green (`#006B3C`) are used for the current New status indicator.
 
 ---
 
@@ -210,41 +265,55 @@ Simulated user login screen used for Lab 2 multi-user testing.
 
 | Viewport | Breakpoint | Layout Adaptations |
 |---|---|---|
-| **Desktop** | `≥ 992px` | Centered 1200px container; multi-column forms; full desktop data table in My Tickets. |
-| **Tablet** | `768px–991px` | Two-column classification forms; table adapts with compact spacing; no clipping. |
-| **Mobile** | `< 768px` | Single-column stacked forms; My Tickets switches from table to stacked cards; touch targets ≥ 44px; zero horizontal page scroll. |
+| **Desktop** | `≥ 992px` | Centered content; multi-column forms; full My Tickets data table. |
+| **Tablet** | `768px–991px` | Fields adapt using available columns; My Tickets remains a table where practical; no clipping. |
+| **Mobile** | `< 768px` | Form fields stack where required; My Tickets switches to stacked Ticket cards; no horizontal page scrolling. |
 
 ---
 
 ## 7. Accessibility (A11y) Rules
 
-1. **Keyboard Accessibility:** All interactive elements (`<button>`, `<a>`, `<input>`, `<select>`, `<textarea>`) are focusable via `Tab` key in logical reading order.
-2. **Focus Rings:** Distinct Secondary Green (`#0B7A46`) outline is preserved across all active focus states.
-3. **Form Association:** Every input is explicitly associated with its `<label>` via `htmlFor` / `id`.
-4. **ARIA Attributes:** Modals use `role="dialog"` with focus trapping; loading spinners use `aria-busy="true"`; error messages use `role="alert"`.
+1. **Keyboard Accessibility:** Native buttons, links, inputs, selects, and textareas remain keyboard focusable in logical order.
+
+2. **Focus Visibility:** Interactive elements retain a clear visible focus state.
+
+3. **Form Association:** Form controls use associated labels through `htmlFor` / `id` where applicable.
+
+4. **ARIA and State Feedback:** Loading and error states use appropriate accessible attributes or roles such as `aria-busy` and `role="alert"` where implemented.
+
+5. **Text Labels:** Important states such as New, Removed, errors, and validation feedback are communicated with readable text rather than color alone.
 
 ---
 
 ## 8. Visual Checklist and Screenshot Evidence Paths
 
 ### 8.1 Visual Inspection Checklist
-Before declaring the UI implementation complete, verify and check all visual quality criteria across Desktop (`≥ 992px`), Tablet (`768–991px`), and Mobile (`< 768px`):
 
-- [ ] **Color Tokens Compliance:** Primary Green (`#006B3C`), Secondary Green (`#0B7A46`), Pale Green (`#EAF6EF`), and neutral borders (`#D6E0DA`) are applied consistently across all screens without unstyled browser defaults.
-- [ ] **Editable vs. Read-Only Fields:** System-generated fields (Ticket Number, Ticket Date, Requester Name) use distinct soft shading (`#EEF3F0`) and are clearly distinguishable from editable white-background inputs.
-- [ ] **Validation Placement:** Required fields show a red asterisk (`*`), and field-level error messages render immediately **below** the associated inputs in red text rather than in a detached summary at the top.
-- [ ] **Button Hierarchy & Busy States:** Primary (`#006B3C`), Secondary (white/bordered), and Destructive (pale red) actions are distinct. The Submit button disables and shows a spinner with `Submitting...` text during requests.
-- [ ] **Text Clipping & Label Wrapping:** Zero clipped form labels, unreadable text, or truncated attachment filenames at any supported viewport.
-- [ ] **Control & Element Overlap:** No overlapping input fields, error messages, modal dialogs, or dropdown menus across all viewports.
-- [ ] **Horizontal Overflow:** Zero horizontal page scrolling (`overflow-x`) on Desktop, Tablet, and Mobile (`375px` viewport width).
-- [ ] **Responsive Transition & Touch Targets:** My Tickets switches cleanly from a desktop data table to responsive stacked cards below `768px`. All mobile interactive buttons and controls maintain a minimum touch target of `44px`.
+Before declaring the UI implementation complete, verify the Requester-facing screens across Desktop (`≥ 992px`), Tablet (`768–991px`), and Mobile (`< 768px`):
+
+- [ ] **Color Tokens Compliance:** Primary Green (`#006B3C`), Secondary Green (`#0B7A46`), Pale Green (`#EAF6EF`), and Page Background (`#F5F7F6`) are used consistently.
+- [ ] **Editable vs. Read-Only Fields:** System-generated or Requester context fields are clearly distinguishable from editable inputs.
+- [ ] **Validation Placement:** Required inputs display understandable validation feedback near the related field.
+- [ ] **Button Hierarchy & Busy States:** Primary, secondary, and removal actions are distinguishable; submission cannot be triggered repeatedly while processing.
+- [ ] **Text Clipping & Label Wrapping:** No clipped labels, unreadable text, or overflowing Attachment filenames.
+- [ ] **Control & Element Overlap:** No overlapping controls, validation messages, or dialogs.
+- [ ] **Horizontal Overflow:** No horizontal page scrolling on Desktop, Tablet, or Mobile.
+- [ ] **Responsive My Tickets:** My Tickets uses a table from Tablet upward and stacked Ticket cards below `768px`.
+- [ ] **Mobile Actions:** Required buttons and controls remain visible and usable on Mobile.
+- [ ] **Attachment States:** Active and Removed Attachments are clearly distinguishable, and removed files do not expose Download.
 
 ### 8.2 Screenshot Evidence Paths
-Visual verification evidence must be captured and stored under the following directory paths:
+
+Screenshot evidence is stored under:
 
 - `artifacts/lab-02/screenshots/create-ticket/`
-  - `desktop-initial.png`, `desktop-validation-error.png`, `desktop-submitting.png`, `desktop-success.png`, `tablet-create-ticket.png`, `mobile-create-ticket.png`
 - `artifacts/lab-02/screenshots/my-tickets/`
-  - `desktop-table.png`, `desktop-filters-active.png`, `tablet-my-tickets.png`, `mobile-cards.png`, `empty-state.png`, `no-results-state.png`
 - `artifacts/lab-02/screenshots/ticket-detail/`
-  - `desktop-view.png`, `attachment-modal.png`, `removed-attachment.png`, `tablet-ticket-detail.png`, `mobile-detail.png`
+
+For final responsive evidence, capture at least:
+
+- Desktop (`1440 × 900`)
+- Tablet (`768 × 1024`)
+- Mobile (`375 × 812`)
+
+Additional screenshots are captured as needed for required validation, success, failure, empty, no-results, and Attachment lifecycle evidence.

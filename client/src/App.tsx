@@ -51,7 +51,7 @@ export default function App() {
   ] = useState<number | null>(null);
 
   useEffect(() => {
-    loadRequesters();
+    void loadRequesters();
   }, []);
 
   async function loadRequesters() {
@@ -167,62 +167,77 @@ export default function App() {
           }}
         >
           <div
-            className="container d-flex flex-wrap justify-content-between align-items-center gap-3 py-3"
+            className="container py-3"
             style={{
               maxWidth: 1200,
             }}
           >
-            <strong className="fs-5">
-              TokTickIT
-            </strong>
-
-            <nav className="d-flex flex-wrap align-items-center gap-2">
-              <button
-                type="button"
-                className={`btn btn-link text-white text-decoration-none px-3 py-2 ${
-                  screen === "home" ||
-                  screen === "detail"
-                    ? "fw-bold border-bottom border-3"
-                    : ""
-                }`}
-                onClick={() => {
-                  setSelectedTicketId(null);
-                  setScreen("home");
-                }}
-              >
-                My Tickets
-              </button>
-
-              <button
-                type="button"
-                className={`btn btn-link text-white text-decoration-none px-3 py-2 ${
-                  screen === "create"
-                    ? "fw-bold border-bottom border-3"
-                    : ""
-                }`}
-                onClick={() => {
-                  setSelectedTicketId(null);
-                  setScreen("create");
-                }}
-              >
-                Create Ticket
-              </button>
-            </nav>
-
             <div className="d-flex flex-wrap align-items-center gap-3">
-              <span>
-                {currentRequester.name}
-              </span>
+              <strong className="fs-5 me-md-3">
+                TokTickIT
+              </strong>
 
-              <button
-                type="button"
-                className="btn btn-light btn-sm"
-                onClick={
-                  handleChangeRequester
-                }
-              >
-                Change Requester
-              </button>
+              <nav className="d-flex flex-wrap align-items-center gap-2">
+                <button
+                  type="button"
+                  className={`btn btn-link text-white text-decoration-none px-3 py-2 ${
+                    screen === "home" ||
+                    screen === "detail"
+                      ? "fw-bold border-bottom border-3"
+                      : ""
+                  }`}
+                  onClick={() => {
+                    setSelectedTicketId(
+                      null
+                    );
+                    setScreen("home");
+                  }}
+                >
+                  My Tickets
+                </button>
+
+                <button
+                  type="button"
+                  className={`btn btn-link text-white text-decoration-none px-3 py-2 ${
+                    screen === "create"
+                      ? "fw-bold border-bottom border-3"
+                      : ""
+                  }`}
+                  onClick={() => {
+                    setSelectedTicketId(
+                      null
+                    );
+                    setScreen("create");
+                  }}
+                >
+                  Create Ticket
+                </button>
+              </nav>
+
+              {/*
+               * Force the Requester area
+               * onto a new row on mobile.
+               * Hidden from md and larger.
+               */}
+              <div className="w-100 d-md-none" />
+
+              <div className="d-flex flex-wrap align-items-center gap-2 gap-md-3 ms-md-auto">
+                <span>
+                  {
+                    currentRequester.name
+                  }
+                </span>
+
+                <button
+                  type="button"
+                  className="btn btn-light btn-sm"
+                  onClick={
+                    handleChangeRequester
+                  }
+                >
+                  Change Requester
+                </button>
+              </div>
             </div>
           </div>
         </header>
@@ -318,7 +333,6 @@ export default function App() {
                     "#006B3C",
                   fontSize: 26,
                 }}
-                aria-hidden="true"
               >
                 👤
               </div>
@@ -328,10 +342,18 @@ export default function App() {
                 Requester
               </h1>
 
-              <p className="text-muted mb-0">
-                Choose a requester to
-                test TokTickIT features
-                in Lab 2.
+              <p className="text-muted mb-1">
+                Select a Development
+                Requester for Lab 2
+                testing only.
+              </p>
+
+              <p className="text-muted small mb-0">
+                This is not a login
+                screen. Authentication
+                and role-based access
+                will be introduced in
+                Lab 3.
               </p>
             </div>
 
@@ -342,76 +364,70 @@ export default function App() {
                 aria-busy="true"
               >
                 <div
-                  className="spinner-border spinner-border-sm me-2"
+                  className="spinner-border mb-3"
                   role="status"
                   aria-hidden="true"
                 />
 
-                Loading Requesters...
+                <p className="mb-0">
+                  Loading Requesters...
+                </p>
               </div>
             )}
 
             {state === "error" && (
-              <div
-                role="alert"
-                className="p-3 rounded mb-3"
-                style={{
-                  backgroundColor:
-                    "#FEF3F2",
-                  border:
-                    "1px solid #B42318",
-                }}
-              >
-                <p className="text-danger mb-2">
-                  Unable to load
-                  Development Requesters.
-                </p>
-
-                <button
-                  type="button"
-                  className="btn btn-outline-danger btn-sm"
-                  onClick={
-                    loadRequesters
-                  }
+              <div>
+                <div
+                  className="alert alert-danger"
+                  role="alert"
                 >
-                  Retry
-                </button>
+                  Unable to load
+                  Development
+                  Requesters. Please
+                  try again.
+                </div>
+
+                <div className="d-flex justify-content-end">
+                  <button
+                    type="button"
+                    className="btn btn-outline-success"
+                    onClick={() =>
+                      void loadRequesters()
+                    }
+                  >
+                    Retry
+                  </button>
+                </div>
               </div>
             )}
 
             {state === "empty" && (
               <div
-                className="p-3 rounded"
-                style={{
-                  backgroundColor:
-                    "#FFFAEB",
-                  border:
-                    "1px solid #B54708",
-                }}
+                className="alert alert-warning"
+                role="status"
               >
                 No active Development
-                Requesters are available.
+                Requesters are
+                available.
               </div>
             )}
 
             {state === "ready" && (
-              <>
+              <div>
                 <label
-                  htmlFor="requester"
+                  htmlFor="developmentRequester"
                   className="form-label fw-semibold"
                 >
-                  Development Requester{" "}
+                  Development
+                  Requester{" "}
                   <span className="text-danger">
                     *
                   </span>
                 </label>
 
                 <select
-                  id="requester"
-                  className="form-select mb-3"
-                  style={{
-                    minHeight: 44,
-                  }}
+                  id="developmentRequester"
+                  className="form-select"
                   value={
                     selectedRequesterId
                   }
@@ -419,16 +435,19 @@ export default function App() {
                     event
                   ) =>
                     setSelectedRequesterId(
-                      event.target.value
+                      event.target
+                        .value
                     )
                   }
                 >
                   <option value="">
-                    Select a requester
+                    Select requester
                   </option>
 
                   {requesters.map(
-                    (requester) => (
+                    (
+                      requester
+                    ) => (
                       <option
                         key={
                           requester.id
@@ -445,56 +464,7 @@ export default function App() {
                   )}
                 </select>
 
-                <div
-                  className="p-2 px-3 rounded mb-3"
-                  style={{
-                    backgroundColor:
-                      "#EAF6EF",
-                    color:
-                      "#006B3C",
-                    border:
-                      "1px solid #D6E0DA",
-                  }}
-                >
-                  Only active requesters
-                  are available.
-                </div>
-
-                <div
-                  className="p-3 rounded mb-4"
-                  style={{
-                    backgroundColor:
-                      "#FFFAEB",
-                    border:
-                      "1px solid #B54708",
-                  }}
-                >
-                  <strong
-                    style={{
-                      color:
-                        "#B54708",
-                    }}
-                  >
-                    Lab 2 testing only
-                  </strong>
-
-                  <p
-                    className="mb-0 mt-1"
-                    style={{
-                      color:
-                        "#66756D",
-                    }}
-                  >
-                    This requester
-                    selection is
-                    temporary. Real login
-                    and authentication
-                    will be introduced
-                    in Lab 3.
-                  </p>
-                </div>
-
-                <div className="d-flex justify-content-end">
+                <div className="d-flex justify-content-end mt-4">
                   <button
                     type="button"
                     className="btn text-white px-4"
@@ -512,7 +482,7 @@ export default function App() {
                     Continue
                   </button>
                 </div>
-              </>
+              </div>
             )}
           </div>
         </section>

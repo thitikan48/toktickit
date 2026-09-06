@@ -6,20 +6,22 @@ Deliver the Requester-facing TokTickIT Minimum Viable Product (MVP) enabling a s
 
 ## 2. Stakeholder Request Interpretation
 
-The IT department requires a responsive, self-service ticketing interface for end-user Requesters. Requesters must be able to describe technical problems, categorize them, select the impacted system, specify requested urgency, attach supporting evidence, and receive a system-generated official Ticket Number. Requesters must find and manage only their own tickets via search, filtering, sorting, and pagination. To enable multi-user testing before production authentication is built in Sprint 3, a Development Requester selector acts as the active session identity, ensuring strict data isolation between Requesters.
+The IT department requires a responsive, self-service ticketing interface for end-user Requesters. Requesters must be able to describe technical problems, categorize them, select the impacted system, specify requested urgency, attach supporting evidence, and receive a system-generated official Ticket Number. Requesters must find and manage only their own tickets via search, filtering, sorting, and pagination. To enable multi-user testing before production authentication is built in Lab 3, a Development Requester selector acts as the active session identity, ensuring data isolation between Requesters.
 
 ## 3. Scope
 
 ### 3.1 Included
+
 - **Development Requester Context:** Simulated user selector for development and testing; the selected Requester is retained for the current browser session and requester-specific data reloads upon requester switching.
 - **Create Ticket:** Requester-facing creation form capturing problem details, category, related system, priority, and attachments.
 - **My Tickets:** Paginated list of tickets owned exclusively by the active Requester with search, multi-field filtering, and sorting.
 - **Ticket Detail (View Mode):** Read-only inspection of ticket header, classification, description, and attached files.
-- **Attachment Lifecycle:** Multi-file selection, client/server validation, upload to owned tickets, active file download/preview, and soft-removal with mandatory reason.
+- **Attachment Lifecycle:** Multi-file selection, client/server validation, upload to owned tickets, active file download, and soft-removal with mandatory reason.
 - **Requester Data Ownership:** Backend enforcement preventing cross-requester ticket and attachment access.
 - **Zen Green UI System:** Accessible, responsive UI components (forms, buttons, cards, tables, badges, modals, empty/error states) following the Zen Green design tokens.
 
 ### 3.2 Excluded
+
 - Real authentication, credentials, password hashing, user registration, JWT/session cookies, and role-based permissions (deferred to Lab 3).
 - IT Staff and Administrator workflows (ticket assignment, agent queue, changing IT priority, closing/resolving tickets).
 - Ticket status transitions beyond the initial `NEW` status.
@@ -31,13 +33,13 @@ The IT department requires a responsive, self-service ticketing interface for en
 - **FR-01:** The system shall allow the active Development Requester to submit a support ticket containing summary, description, category, related system, requested priority, and optional permitted attachments.
 - **FR-02:** The system shall generate a unique official Ticket Number upon successful ticket creation and assign an initial status of `NEW`.
 - **FR-03:** The system shall display only tickets owned by the currently selected Development Requester in the My Tickets view.
-- **FR-04:** The system shall enable the Requester to search their owned tickets by Ticket Number, Summary, or Description.
+- **FR-04:** The system shall enable the Requester to search their owned tickets by Ticket Number or Summary.
 - **FR-05:** The system shall allow the Requester to filter their tickets by Category, Current Status, and Requested Priority, and sort by Created Date.
-- **FR-06:** The system shall provide paginated navigation for the ticket list with configurable page sizes.
+- **FR-06:** The system shall provide paginated navigation for the ticket list.
 - **FR-07:** The system shall display the full details of an owned ticket in a read-only Ticket Detail view.
 - **FR-08:** The system shall allow permitted attachments (JPG, PNG, WEBP, PDF up to 5 MB each, maximum 5 active per ticket) to be added during ticket creation or to an existing owned ticket.
-- **FR-09:** The system shall allow the Requester to download or preview active attachments belonging to their owned tickets.
-- **FR-10:** The system shall allow the Requester to soft-remove an attachment from an owned ticket upon confirming a valid removal reason (5–255 characters after trimming).
+- **FR-09:** The system shall allow the Requester to download active attachments belonging to their owned tickets.
+- **FR-10:** The system shall allow the Requester to soft-remove an attachment from an owned ticket upon confirming a removal reason that is not empty after trimming.
 - **FR-11:** The system shall strictly reject any read, download, upload, or removal request targeting tickets or attachments owned by another Requester (`403 Forbidden`).
 - **FR-12:** The system shall provide a Development Requester selector listing only active requesters, and shall reload all requester-specific data whenever the selected identity changes.
 
@@ -54,102 +56,112 @@ The IT department requires a responsive, self-service ticketing interface for en
 - **BR-09:** If a Requester has no tickets, an empty-state message with a Create Ticket action shall be displayed. If no tickets match active filters/search, a no-results state with a Clear Filters action shall be displayed.
 - **BR-10:** Permitted attachment file types are strictly limited to `image/jpeg` (JPG/JPEG), `image/png` (PNG), `image/webp` (WEBP), and `application/pdf` (PDF).
 - **BR-11:** Each attachment file must not exceed 5 MB (5,242,880 bytes), and a ticket shall have at most five active (non-removed) attachments at any time.
-- **BR-12:** Attachment removal must be implemented as soft removal (`isRemoved = true`). The file metadata remains visible for auditing, but the underlying file must not be downloadable or previewed.
+- **BR-12:** Attachment removal must be implemented as soft removal (`isRemoved = true`). The file metadata remains visible, but the removed file must not be downloadable or previewed.
 - **BR-13:** A Requester may only upload, download, or soft-remove attachments associated with a ticket they own.
-- **BR-14:** Soft-removing an attachment requires an explicit confirmation step and a mandatory removal reason (5–255 characters after trimming).
-- **BR-15:** On API, network, or server failure, the application shall present safe, user-friendly error feedback and preserve all user-entered form inputs to prevent data loss.
+- **BR-14:** Soft-removing an attachment requires an explicit confirmation step and a mandatory removal reason that must contain non-whitespace text after trimming.
+- **BR-15:** On API, network, or server failure, the application shall present safe, user-friendly error feedback and preserve user-entered form inputs where applicable.
 - **BR-16:** Switching the active Development Requester shall clear the previous requester's state from the UI and reload fresh data for the newly selected requester.
 - **BR-17:** During form submission, the submit action must be disabled and visually indicate a busy state to prevent duplicate submissions.
 - **BR-18:** If a ticket is successfully created but an accompanying attachment upload fails, the ticket remains safely saved in the database; the failed file is not recorded as active, and the user is informed of the partial upload failure.
 
 ## 6. UI Specification Summary
 
-The TokTickIT user interface adheres strictly to the **Zen Green Design System** detailed in `docs/lab-02/ui-spec.md`:
+The TokTickIT user interface adheres to the **Zen Green Design System** detailed in `docs/lab-02/ui-spec.md`:
 
-- **Application Shell:** Features a Primary Green (`#006B3C`) top header displaying the TokTickIT logo, main navigation tabs (`My Tickets`, `Create Ticket`), active route highlights (`#EAF6EF` / `#0B7A46`), and current Development Requester badge with a `Change Requester` action.
+- **Application Shell:** Features a Primary Green (`#006B3C`) top header displaying the TokTickIT logo, main navigation tabs (`My Tickets`, `Create Ticket`), active page indication, and current Development Requester with a `Change Requester` action.
 - **Development Requester Selector Screen:** A clean, centered card providing testing context disclaimer, active requester selection dropdown, and Continue action.
-- **Create Ticket Screen:** Clean grouping of read-only system-assigned fields (Ticket Number placeholder, Ticket Date, Requester Name), classification dropdowns (Category, Related System, Priority), full-width Summary and Description inputs, attachment upload zone with real-time file size/type validation, and primary/secondary actions.
-- **My Tickets Screen:** Search bar, filter dropdowns for Category, Status, and Priority, Sort toggle, and Clear Filters action. Displays a responsive data table on desktop and stacked ticket cards on mobile (`< 768px`), accompanied by pagination controls.
-- **Requester Ticket Detail Screen:** Read-only ticket metadata and description display, active attachments list with download buttons, removed attachments list showing metadata and removal reasons, and an Add Attachment modal/section.
+- **Create Ticket Screen:** Clean grouping of read-only system-assigned fields (Ticket Number placeholder, Ticket Date, Requester Name), classification dropdowns (Category, Related System, Priority), full-width Summary and Description inputs, attachment selection with file size/type validation, and submission action.
+- **My Tickets Screen:** Search bar, filter dropdowns for Category, Status, and Priority, sorting control, and Clear Filters action. Displays a responsive data table on desktop/tablet and stacked ticket cards on mobile (`< 768px`), accompanied by pagination controls.
+- **Requester Ticket Detail Screen:** Read-only ticket metadata and description display, active attachments list with download buttons, removed attachments list showing metadata and removal reasons, and an Add Attachment action.
 - **Responsive Layout:** Optimized across Desktop (`≥ 992px`), Tablet (`768–991px`), and Mobile (`< 768px`) viewports without content clipping or horizontal page scroll.
 
 ## 7. Data Changes
 
 ### 7.1 Models and Fields
 
-```
-RequesterUser
-├── id: Int [PK, autoincrement]
-├── name: String
-├── email: String [Unique]
-├── isActive: Boolean [default: true]
-├── createdAt: DateTime [default: now()]
-└── updatedAt: DateTime [updatedAt]
+#### RequesterUser
 
-Category (Extended from Lab 1)
-├── id: Int [PK, autoincrement]
-├── name: String [Unique]
-├── isActive: Boolean [default: true]
-└── createdAt: DateTime [default: now()]
+- `id`: Int [PK, autoincrement]
+- `name`: String
+- `email`: String [Unique]
+- `isActive`: Boolean [default: true]
+- `createdAt`: DateTime [default: now()]
+- `updatedAt`: DateTime [updatedAt]
 
-RelatedSystem
-├── id: Int [PK, autoincrement]
-├── name: String [Unique]
-├── isActive: Boolean [default: true]
-└── createdAt: DateTime [default: now()]
+#### Category
 
-Ticket
-├── id: Int [PK, autoincrement]
-├── ticketNumber: String [Unique]
-├── requesterId: Int [FK -> RequesterUser.id]
-├── categoryId: Int [FK -> Category.id]
-├── relatedSystemId: Int [FK -> RelatedSystem.id]
-├── summary: String (VarChar 120)
-├── description: String (Text)
-├── requestedPriority: RequestedPriority [Enum: LOW, MEDIUM, HIGH]
-├── currentStatus: TicketStatus [Enum: NEW, default: NEW]
-├── createdAt: DateTime [default: now()]
-└── updatedAt: DateTime [updatedAt]
+- `id`: Int [PK, autoincrement]
+- `name`: String [Unique]
+- `isActive`: Boolean [default: true]
+- `createdAt`: DateTime [default: now()]
 
-Attachment
-├── id: Int [PK, autoincrement]
-├── ticketId: Int [FK -> Ticket.id, onDelete: Cascade]
-├── originalName: String
-├── storedName: String [Unique]
-├── mimeType: String
-├── sizeBytes: Int
-├── isRemoved: Boolean [default: false]
-├── removalReason: String?
-├── removedAt: DateTime?
-└── createdAt: DateTime [default: now()]
-```
+#### RelatedSystem
+
+- `id`: Int [PK, autoincrement]
+- `name`: String [Unique]
+- `isActive`: Boolean [default: true]
+- `createdAt`: DateTime [default: now()]
+
+#### Ticket
+
+- `id`: Int [PK, autoincrement]
+- `ticketNumber`: String [Unique]
+- `requesterId`: Int [FK -> RequesterUser.id]
+- `categoryId`: Int [FK -> Category.id]
+- `relatedSystemId`: Int [FK -> RelatedSystem.id]
+- `summary`: String (VarChar 120)
+- `description`: String (Text)
+- `requestedPriority`: RequestedPriority [Enum: LOW, MEDIUM, HIGH]
+- `currentStatus`: TicketStatus [Enum: NEW, default: NEW]
+- `createdAt`: DateTime [default: now()]
+- `updatedAt`: DateTime [updatedAt]
+
+#### Attachment
+
+- `id`: Int [PK, autoincrement]
+- `ticketId`: Int [FK -> Ticket.id, onDelete: Cascade]
+- `originalName`: String
+- `storedName`: String [Unique]
+- `mimeType`: String
+- `sizeBytes`: Int
+- `isRemoved`: Boolean [default: false]
+- `removalReason`: String?
+- `removedAt`: DateTime?
+- `createdAt`: DateTime [default: now()]
 
 ### 7.2 Relationships
+
 - `RequesterUser` 1 ─── N `Ticket` (One Requester owns many Tickets).
 - `Category` 1 ─── N `Ticket` (One Category classifies many Tickets).
 - `RelatedSystem` 1 ─── N `Ticket` (One Related System is referenced by many Tickets).
 - `Ticket` 1 ─── N `Attachment` (One Ticket owns many Attachments).
 
 ### 7.3 Indexes and Optimization
-To guarantee responsive querying in My Tickets and enforce ownership security:
-- `Ticket(requesterId, createdAt DESC)`: Composite index optimizing default sorted ticket retrieval per requester.
-- `Ticket(requesterId, currentStatus)`: Composite index optimizing status filtering per requester.
-- `Ticket(requesterId, categoryId)`: Composite index optimizing category filtering per requester.
-- `Ticket(ticketNumber)`: Unique index ensuring constant-time lookup and uniqueness verification.
-- `Attachment(ticketId, isRemoved)`: Index optimizing queries for active attachments count and metadata retrieval.
+
+To support My Tickets queries and attachment retrieval:
+
+- `Ticket(requesterId, createdAt DESC)`: Composite index supporting default sorted ticket retrieval per requester.
+- `Ticket(requesterId, currentStatus)`: Composite index supporting status filtering per requester.
+- `Ticket(requesterId, categoryId)`: Composite index supporting category filtering per requester.
+- `Ticket(ticketNumber)`: Unique index enforcing Ticket Number uniqueness.
+- `Attachment(ticketId, isRemoved)`: Index supporting attachment listing and active attachment count checks.
 
 ### 7.4 Architectural and Design Justifications
-1. **Soft Removal for Attachments:** Rather than executing destructive SQL `DELETE` operations or unlinking physical files immediately, attachments use soft-removal (`isRemoved`, `removalReason`, `removedAt`). This satisfies strict IT governance and audit trail requirements for enterprise support while preventing unauthorized downloads.
-2. **UUID Storage Filename Isolation:** Attachments are stored on disk using generated UUIDs (`storedName`) while retaining the user's `originalName` in PostgreSQL. This eliminates filename collision and prevents path-traversal security vulnerabilities.
-3. **Database Evolution for Lab 3:** `RequesterUser` is designed as a standalone model with `id`, `name`, and `email`. In Lab 3, when full authentication is introduced, `RequesterUser` will seamlessly map or migrate into a unified `User` table with password hashes and role relationships (`REQUESTER`, `IT_STAFF`, `ADMIN`) without altering the foreign key contracts on `Ticket`.
+
+1. **Soft Removal for Attachments:** Attachments use soft-removal (`isRemoved`, `removalReason`, `removedAt`) so removed attachment metadata remains available while access to the removed file is blocked.
+2. **UUID Storage Filename Isolation:** Attachments are stored on disk using generated UUIDs (`storedName`) while retaining the user's `originalName` in PostgreSQL. This prevents filename collisions and avoids using user-provided filenames as storage paths.
+3. **Development Requester Context:** `RequesterUser` provides the temporary requester identity required for Lab 2. Real authentication and role handling are deferred to Lab 3.
 
 ### 7.5 Seed Data Requirements
+
 The seed script (`prisma/seed.ts`) must be strictly idempotent (safe to run repeatedly via `upsert` without duplicates):
+
 - **Ticket Categories (4 required):**
   1. `Account and Access`
   2. `Hardware`
   3. `Software`
   4. `Network`
+
 - **Related Systems (7 realistic systems):**
   1. `Email`
   2. `Campus Wi-Fi`
@@ -158,6 +170,7 @@ The seed script (`prisma/seed.ts`) must be strictly idempotent (safe to run repe
   5. `Grade Submission App`
   6. `Printer`
   7. `Corporate Laptop`
+
 - **Development Requesters:**
   - Active (`isActive = true`):
     1. `Jennifer Anderson` (`jennifer.anderson@example.com`)
@@ -165,7 +178,7 @@ The seed script (`prisma/seed.ts`) must be strictly idempotent (safe to run repe
     3. `Sarah Johnson` (`sarah.johnson@example.com`)
     4. `David Lee` (`david.lee@example.com`)
   - Inactive (`isActive = false`):
-    5. `Inactive Test User` (`inactive.user@example.com`) — used to prove inactive accounts do not populate the development selector.
+    5. `Alex Ford` (`alex.ford@example.com`) — used to prove inactive accounts do not populate the development selector.
 
 ## 8. API Contract Summary
 
@@ -199,9 +212,9 @@ Base path: `/api`
 - **AC-09:** Given tickets exist for the Requester but none match the applied search/filter criteria, when My Tickets renders, then a no-results state and a `Clear Filters` action are displayed.
 - **AC-10:** Given a valid file (JPG, PNG, WEBP, or PDF ≤ 5 MB) and fewer than five active attachments on an owned ticket, when uploaded, then the file is stored safely and active attachment metadata is returned.
 - **AC-11:** Given an unsupported file format, a file larger than 5 MB, or an attempt to upload a sixth active attachment, when upload is attempted, then the request is rejected with a descriptive validation error.
-- **AC-12:** Given an active attachment and a valid removal reason (5–255 characters after trimming), when removal is confirmed, then the attachment is marked as soft-removed, metadata remains visible with the reason, and file download/preview is blocked (`410 Gone`).
+- **AC-12:** Given an active attachment and a removal reason containing non-whitespace text, when removal is confirmed, then the attachment is marked as soft-removed, metadata remains visible with the reason, and file download/preview is blocked (`410 Gone`).
 - **AC-13:** Given the active Requester is changed via the selector, when switching occurs, then the previous user's data is cleared from the UI and ticket data reloads for the new Requester.
-- **AC-14:** Given the backend is unavailable or returns an error, when an action is attempted, then a safe error message is displayed and entered form values are preserved.
+- **AC-14:** Given the backend is unavailable or returns an error, when an action is attempted, then a safe error message is displayed and entered form values are preserved where applicable.
 - **AC-15:** Given Desktop (`≥ 992px`), Tablet (`768–991px`), or Mobile (`< 768px`) viewports, when navigating all screens, then controls remain accessible with zero horizontal page scroll or content clipping.
 - **AC-16:** Given keyboard navigation, when interacting with form controls, links, and buttons, then all elements are reachable with clear visible focus indicators.
 
@@ -226,11 +239,11 @@ Base path: `/api`
 2. **Text Field Constraints:**
    - Ticket Summary: Mandatory, trimmed, minimum 5 characters, maximum 120 characters.
    - Description: Mandatory, trimmed, minimum 10 characters, maximum 4,000 characters.
-   - Removal Reason: Mandatory, trimmed, minimum 5 characters, maximum 255 characters.
+   - Removal Reason: Mandatory, trimmed, and must contain non-whitespace text.
 3. **Priority Options:** Requested Priority values are strictly `LOW`, `MEDIUM`, and `HIGH`.
-4. **My Tickets Search Scope:** Search queries perform case-insensitive partial matching across `ticketNumber`, `summary`, and `description`.
+4. **My Tickets Search Scope:** Search queries perform case-insensitive partial matching across `ticketNumber` and `summary`.
 5. **Pagination Defaults:** Default page is `1`; default page size is `10` items; default sort order is `createdAt DESC` (newest first).
 6. **Ticket Creation & Attachment Decoupling:** Ticket creation persists the ticket record first via JSON; attachments are uploaded sequentially via multipart requests linked to the generated ticket ID. If an attachment upload fails, the ticket remains safely saved (BR-18).
 7. **Attachment Storage Strategy:** Files are saved on the server's local storage directory (`server/uploads/`) named by unique UUIDs (`storedName`) with original filenames and MIME types tracked in PostgreSQL.
-8. **Initial Status in Lab 2:** The `currentStatus` field defaults to `NEW`. Additional lifecycle statuses (`OPEN`, `IN_PROGRESS`, `RESOLVED`, `CLOSED`) belong to IT Staff workflows and are deferred to Lab 3+.
+8. **Initial Status in Lab 2:** The `currentStatus` field defaults to `NEW`. Additional ticket lifecycle changes belong to later IT Staff workflows and are outside Lab 2 scope.
 9. **Development Requester Context Storage:** The selected Development Requester ID is stored in browser `sessionStorage` for the current browser session.

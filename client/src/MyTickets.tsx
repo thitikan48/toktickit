@@ -82,7 +82,7 @@ export default function MyTickets({
       }
     }
 
-    loadCategories();
+    void loadCategories();
   }, []);
 
   useEffect(() => {
@@ -97,35 +97,42 @@ export default function MyTickets({
       setError("");
 
       try {
-        const result = await getTickets({
-          requesterId,
+        const result =
+          await getTickets({
+            requesterId,
 
-          search:
-            search.trim() || undefined,
+            search:
+              search.trim() ||
+              undefined,
 
-          status:
-            status || undefined,
+            status:
+              status || undefined,
 
-          categoryId: categoryId
-            ? Number(categoryId)
-            : undefined,
+            categoryId: categoryId
+              ? Number(categoryId)
+              : undefined,
 
-          requestedPriority: priority
-            ? (priority as RequestedPriority)
-            : undefined,
+            requestedPriority:
+              priority
+                ? (priority as RequestedPriority)
+                : undefined,
 
-          sort,
-          page,
-          pageSize,
-        });
+            sort,
+            page,
+            pageSize,
+          });
 
         if (cancelled) {
           return;
         }
 
         setTickets(result.items);
-        setTotalItems(result.totalItems);
-        setTotalPages(result.totalPages);
+        setTotalItems(
+          result.totalItems
+        );
+        setTotalPages(
+          result.totalPages
+        );
       } catch {
         if (cancelled) {
           return;
@@ -145,7 +152,7 @@ export default function MyTickets({
       }
     }
 
-    loadTickets();
+    void loadTickets();
 
     return () => {
       cancelled = true;
@@ -172,7 +179,10 @@ export default function MyTickets({
 
   function goToPreviousPage() {
     setPage((current) =>
-      Math.max(1, current - 1)
+      Math.max(
+        1,
+        current - 1
+      )
     );
   }
 
@@ -197,20 +207,41 @@ export default function MyTickets({
     ) {
       if (
         pageNumber === 1 ||
-        pageNumber === totalPages ||
-        Math.abs(pageNumber - page) <= 2
+        pageNumber ===
+          totalPages ||
+        Math.abs(
+          pageNumber - page
+        ) <= 2
       ) {
-        visible.push(pageNumber);
+        visible.push(
+          pageNumber
+        );
       }
     }
 
     return visible;
   }
 
+  function formatPriority(
+    value: RequestedPriority
+  ) {
+    if (value === "LOW") {
+      return "Low";
+    }
+
+    if (value === "MEDIUM") {
+      return "Medium";
+    }
+
+    return "High";
+  }
+
   const startItem =
     totalItems === 0
       ? 0
-      : (page - 1) * pageSize + 1;
+      : (page - 1) *
+          pageSize +
+        1;
 
   const endItem = Math.min(
     page * pageSize,
@@ -220,7 +251,9 @@ export default function MyTickets({
   return (
     <section
       className="container py-4"
-      style={{ maxWidth: 1200 }}
+      style={{
+        maxWidth: 1200,
+      }}
     >
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
@@ -229,8 +262,8 @@ export default function MyTickets({
           </h1>
 
           <p className="text-muted mb-0">
-            View and search your support
-            requests.
+            View and search your
+            support requests.
           </p>
         </div>
       </div>
@@ -252,9 +285,12 @@ export default function MyTickets({
                 className="form-control"
                 placeholder="Ticket number or summary"
                 value={search}
-                onChange={(event) => {
+                onChange={(
+                  event
+                ) => {
                   setSearch(
-                    event.target.value
+                    event.target
+                      .value
                   );
                   setPage(1);
                 }}
@@ -273,9 +309,12 @@ export default function MyTickets({
                 id="statusFilter"
                 className="form-select"
                 value={status}
-                onChange={(event) => {
+                onChange={(
+                  event
+                ) => {
                   setStatus(
-                    event.target.value
+                    event.target
+                      .value
                   );
                   setPage(1);
                 }}
@@ -301,10 +340,15 @@ export default function MyTickets({
               <select
                 id="categoryFilter"
                 className="form-select"
-                value={categoryId}
-                onChange={(event) => {
+                value={
+                  categoryId
+                }
+                onChange={(
+                  event
+                ) => {
                   setCategoryId(
-                    event.target.value
+                    event.target
+                      .value
                   );
                   setPage(1);
                 }}
@@ -314,12 +358,20 @@ export default function MyTickets({
                 </option>
 
                 {categories.map(
-                  (category) => (
+                  (
+                    category
+                  ) => (
                     <option
-                      key={category.id}
-                      value={category.id}
+                      key={
+                        category.id
+                      }
+                      value={
+                        category.id
+                      }
                     >
-                      {category.name}
+                      {
+                        category.name
+                      }
                     </option>
                   )
                 )}
@@ -338,9 +390,12 @@ export default function MyTickets({
                 id="priorityFilter"
                 className="form-select"
                 value={priority}
-                onChange={(event) => {
+                onChange={(
+                  event
+                ) => {
                   setPriority(
-                    event.target.value
+                    event.target
+                      .value
                   );
                   setPage(1);
                 }}
@@ -375,9 +430,12 @@ export default function MyTickets({
                 id="sortTickets"
                 className="form-select"
                 value={sort}
-                onChange={(event) => {
+                onChange={(
+                  event
+                ) => {
                   setSort(
-                    event.target.value as
+                    event.target
+                      .value as
                       | "createdAt_desc"
                       | "createdAt_asc"
                   );
@@ -401,7 +459,9 @@ export default function MyTickets({
               <button
                 type="button"
                 className="btn btn-outline-secondary btn-sm"
-                onClick={resetFilters}
+                onClick={
+                  resetFilters
+                }
               >
                 Clear filters
               </button>
@@ -438,7 +498,8 @@ export default function MyTickets({
 
       {!loading &&
         !error &&
-        tickets.length === 0 &&
+        tickets.length ===
+          0 &&
         !hasFilters && (
           <div className="card shadow-sm">
             <div className="card-body text-center py-5">
@@ -447,8 +508,8 @@ export default function MyTickets({
               </h2>
 
               <p className="text-muted mb-0">
-                Tickets you create will appear
-                here.
+                Tickets you create
+                will appear here.
               </p>
             </div>
           </div>
@@ -456,23 +517,27 @@ export default function MyTickets({
 
       {!loading &&
         !error &&
-        tickets.length === 0 &&
+        tickets.length ===
+          0 &&
         hasFilters && (
           <div className="card shadow-sm">
             <div className="card-body text-center py-5">
               <h2 className="h5">
-                No matching tickets
+                No matching
+                tickets
               </h2>
 
               <p className="text-muted">
-                Try changing your search or
-                filters.
+                Try changing your
+                search or filters.
               </p>
 
               <button
                 type="button"
                 className="btn btn-outline-secondary"
-                onClick={resetFilters}
+                onClick={
+                  resetFilters
+                }
               >
                 Clear filters
               </button>
@@ -482,151 +547,255 @@ export default function MyTickets({
 
       {!loading &&
         !error &&
-        tickets.length > 0 && (
-          <div className="card shadow-sm overflow-hidden">
-            <div className="table-responsive">
-              <table className="table table-hover align-middle mb-0">
-                <thead
-                  style={{
-                    backgroundColor:
-                      "#EAF6EF",
-                  }}
-                >
-                  <tr>
-                    <th
-                      scope="col"
-                      className="py-3"
-                    >
-                      Ticket Number
-                    </th>
+        tickets.length >
+          0 && (
+          <>
+            {/* Tablet and desktop */}
+            <div className="card shadow-sm overflow-hidden d-none d-md-block">
+              <div className="table-responsive">
+                <table className="table table-hover align-middle mb-0">
+                  <thead
+                    style={{
+                      backgroundColor:
+                        "#EAF6EF",
+                    }}
+                  >
+                    <tr>
+                      <th
+                        scope="col"
+                        className="py-3"
+                      >
+                        Ticket Number
+                      </th>
 
-                    <th
-                      scope="col"
-                      className="py-3"
-                    >
-                      Summary
-                    </th>
+                      <th
+                        scope="col"
+                        className="py-3"
+                      >
+                        Summary
+                      </th>
 
-                    <th
-                      scope="col"
-                      className="py-3"
-                    >
-                      Category
-                    </th>
+                      <th
+                        scope="col"
+                        className="py-3"
+                      >
+                        Category
+                      </th>
 
-                    <th
-                      scope="col"
-                      className="py-3"
-                    >
-                      Status
-                    </th>
+                      <th
+                        scope="col"
+                        className="py-3"
+                      >
+                        Status
+                      </th>
 
-                    <th
-                      scope="col"
-                      className="py-3"
-                    >
-                      Priority
-                    </th>
+                      <th
+                        scope="col"
+                        className="py-3"
+                      >
+                        Priority
+                      </th>
 
-                    <th
-                      scope="col"
-                      className="py-3"
-                    >
-                      Created
-                    </th>
+                      <th
+                        scope="col"
+                        className="py-3"
+                      >
+                        Created
+                      </th>
 
-                    <th
-                      scope="col"
-                      className="py-3"
-                    >
-                      <span className="visually-hidden">
-                        Action
-                      </span>
-                    </th>
-                  </tr>
-                </thead>
+                      <th
+                        scope="col"
+                        className="py-3"
+                      >
+                        <span className="visually-hidden">
+                          Action
+                        </span>
+                      </th>
+                    </tr>
+                  </thead>
 
-                <tbody>
-                  {tickets.map(
-                    (ticket) => (
-                      <tr key={ticket.id}>
-                        <td className="fw-semibold py-3">
+                  <tbody>
+                    {tickets.map(
+                      (
+                        ticket
+                      ) => (
+                        <tr
+                          key={
+                            ticket.id
+                          }
+                        >
+                          <td className="fw-semibold py-3">
+                            {
+                              ticket.ticketNumber
+                            }
+                          </td>
+
+                          <td className="py-3">
+                            {
+                              ticket.summary
+                            }
+                          </td>
+
+                          <td className="py-3">
+                            {
+                              ticket
+                                .category
+                                .name
+                            }
+                          </td>
+
+                          <td className="py-3">
+                            <span
+                              className="badge"
+                              style={{
+                                backgroundColor:
+                                  "#EAF6EF",
+                                color:
+                                  "#006B3C",
+                              }}
+                            >
+                              New
+                            </span>
+                          </td>
+
+                          <td className="py-3">
+                            {formatPriority(
+                              ticket.requestedPriority
+                            )}
+                          </td>
+
+                          <td className="py-3">
+                            {new Date(
+                              ticket.createdAt
+                            ).toLocaleDateString()}
+                          </td>
+
+                          <td className="text-end py-3">
+                            <button
+                              type="button"
+                              className="btn btn-outline-success btn-sm"
+                              onClick={() =>
+                                onOpenTicket?.(
+                                  ticket
+                                )
+                              }
+                            >
+                              Open
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Mobile */}
+            <div className="d-md-none d-flex flex-column gap-3">
+              {tickets.map(
+                (ticket) => (
+                  <article
+                    key={
+                      ticket.id
+                    }
+                    className="card shadow-sm"
+                  >
+                    <div className="card-body">
+                      <div className="d-flex justify-content-between align-items-start gap-3 mb-3">
+                        <div
+                          className="fw-semibold text-break"
+                          style={{
+                            color:
+                              "#006B3C",
+                          }}
+                        >
                           {
                             ticket.ticketNumber
                           }
-                        </td>
+                        </div>
 
-                        <td className="py-3">
-                          {ticket.summary}
-                        </td>
+                        <span
+                          className="badge flex-shrink-0"
+                          style={{
+                            backgroundColor:
+                              "#EAF6EF",
+                            color:
+                              "#006B3C",
+                          }}
+                        >
+                          New
+                        </span>
+                      </div>
 
-                        <td className="py-3">
+                      <h2 className="h6 mb-3 text-break">
+                        {
+                          ticket.summary
+                        }
+                      </h2>
+
+                      <dl className="row small mb-3">
+                        <dt className="col-4 text-muted fw-normal">
+                          Category
+                        </dt>
+
+                        <dd className="col-8 mb-2 text-break">
                           {
-                            ticket.category
+                            ticket
+                              .category
                               .name
                           }
-                        </td>
+                        </dd>
 
-                        <td className="py-3">
-                          <span
-                            className="badge"
-                            style={{
-                              backgroundColor:
-                                "#EAF6EF",
-                              color:
-                                "#006B3C",
-                            }}
-                          >
-                            New
-                          </span>
-                        </td>
+                        <dt className="col-4 text-muted fw-normal">
+                          Priority
+                        </dt>
 
-                        <td className="py-3">
-                          {ticket.requestedPriority ===
-                          "LOW"
-                            ? "Low"
-                            : ticket.requestedPriority ===
-                                "MEDIUM"
-                              ? "Medium"
-                              : "High"}
-                        </td>
+                        <dd className="col-8 mb-2">
+                          {formatPriority(
+                            ticket.requestedPriority
+                          )}
+                        </dd>
 
-                        <td className="py-3">
+                        <dt className="col-4 text-muted fw-normal">
+                          Created
+                        </dt>
+
+                        <dd className="col-8 mb-0">
                           {new Date(
                             ticket.createdAt
                           ).toLocaleDateString()}
-                        </td>
+                        </dd>
+                      </dl>
 
-                        <td className="text-end py-3">
-                          <button
-                            type="button"
-                            className="btn btn-outline-success btn-sm"
-                            onClick={() =>
-                              onOpenTicket?.(
-                                ticket
-                              )
-                            }
-                          >
-                            Open
-                          </button>
-                        </td>
-                      </tr>
-                    )
-                  )}
-                </tbody>
-              </table>
+                      <button
+                        type="button"
+                        className="btn btn-outline-success w-100"
+                        onClick={() =>
+                          onOpenTicket?.(
+                            ticket
+                          )
+                        }
+                      >
+                        Open
+                      </button>
+                    </div>
+                  </article>
+                )
+              )}
             </div>
 
             {totalPages > 1 && (
-              <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 px-3 py-3 border-top">
+              <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 px-2 py-3 mt-3">
                 <div className="text-muted small">
-                  Showing {startItem} to{" "}
-                  {endItem} of {totalItems}{" "}
-                  tickets
+                  Showing{" "}
+                  {startItem} to{" "}
+                  {endItem} of{" "}
+                  {totalItems} tickets
                 </div>
 
                 <nav aria-label="Ticket pagination">
-                  <ul className="pagination pagination-sm mb-0">
+                  <ul className="pagination pagination-sm mb-0 flex-wrap">
                     <li
                       className={`page-item ${
                         page <= 1
@@ -640,9 +809,12 @@ export default function MyTickets({
                         onClick={
                           goToPreviousPage
                         }
-                        disabled={page <= 1}
+                        disabled={
+                          page <= 1
+                        }
                         style={{
-                          color: "#006B3C",
+                          color:
+                            "#006B3C",
                         }}
                       >
                         Previous
@@ -662,7 +834,9 @@ export default function MyTickets({
 
                         return (
                           <span
-                            key={pageNumber}
+                            key={
+                              pageNumber
+                            }
                             className="d-flex"
                           >
                             {previousPage &&
@@ -709,7 +883,9 @@ export default function MyTickets({
                                       }
                                 }
                               >
-                                {pageNumber}
+                                {
+                                  pageNumber
+                                }
                               </button>
                             </li>
                           </span>
@@ -719,7 +895,8 @@ export default function MyTickets({
 
                     <li
                       className={`page-item ${
-                        page >= totalPages
+                        page >=
+                        totalPages
                           ? "disabled"
                           : ""
                       }`}
@@ -727,12 +904,16 @@ export default function MyTickets({
                       <button
                         type="button"
                         className="page-link"
-                        onClick={goToNextPage}
+                        onClick={
+                          goToNextPage
+                        }
                         disabled={
-                          page >= totalPages
+                          page >=
+                          totalPages
                         }
                         style={{
-                          color: "#006B3C",
+                          color:
+                            "#006B3C",
                         }}
                       >
                         Next
@@ -742,7 +923,7 @@ export default function MyTickets({
                 </nav>
               </div>
             )}
-          </div>
+          </>
         )}
     </section>
   );
