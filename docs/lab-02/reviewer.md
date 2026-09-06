@@ -15,6 +15,7 @@
 | [#21](https://github.com/thitikan48/toktickit/pull/21) | `feature/lab2-ticket-detail` | Requester Ticket Detail | Approved |
 | [#22](https://github.com/thitikan48/toktickit/pull/22) | `feature/lab2-attachments` | Attachment Lifecycle | Approved |
 
+```
 Lab 2 - Issue 1: Specification and Test Plan :
 Reviewer comment I received: <It look good>
 How I responded: <Thanks!>
@@ -38,10 +39,10 @@ How I responded: <Thank>
 Lab 2 - Issue 6: Attachment Lifecycle :
 Reviewer comment I received: <All acceptance criteria passed>
 How I responded: <Thank for checking!>
-
+```
 
 ## Pull Requests I reviewed for my partner
-
+```
 Issue 1: Sprint Specification and Test Plan :
 My comment: <Good job!>
 Partner's response: <thank you>
@@ -74,3 +75,4 @@ Partner's response: <Thanks for reviewing>
 Issue 8: Release Integration, Review & Lab 2 Delivery:
 My comment: <good> 
 Partner's response: <🙏🏻 Thank you for checking.>
+```
