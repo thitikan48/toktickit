@@ -1,4 +1,7 @@
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
 import {
   DevelopmentRequester,
   getDevelopmentRequesters,
@@ -6,6 +9,7 @@ import {
 } from "./api.js";
 import CreateTicket from "./CreateTicket.js";
 import MyTickets from "./MyTickets.js";
+import TicketDetail from "./TicketDetail.js";
 
 type RequesterState =
   | "loading"
@@ -19,9 +23,8 @@ type AppScreen =
   | "detail";
 
 export default function App() {
-  const [requesters, setRequesters] = useState<
-    DevelopmentRequester[]
-  >([]);
+  const [requesters, setRequesters] =
+    useState<DevelopmentRequester[]>([]);
 
   const [
     selectedRequesterId,
@@ -43,10 +46,9 @@ export default function App() {
     useState<AppScreen>("home");
 
   const [
-    selectedTicket,
-    setSelectedTicket,
-  ] =
-    useState<TicketListItem | null>(null);
+    selectedTicketId,
+    setSelectedTicketId,
+  ] = useState<number | null>(null);
 
   useEffect(() => {
     loadRequesters();
@@ -123,7 +125,7 @@ export default function App() {
     );
 
     setCurrentRequester(requester);
-    setSelectedTicket(null);
+    setSelectedTicketId(null);
     setScreen("home");
   }
 
@@ -134,19 +136,19 @@ export default function App() {
 
     setCurrentRequester(null);
     setSelectedRequesterId("");
-    setSelectedTicket(null);
+    setSelectedTicketId(null);
     setScreen("home");
   }
 
   function handleOpenTicket(
     ticket: TicketListItem
   ) {
-    setSelectedTicket(ticket);
+    setSelectedTicketId(ticket.id);
     setScreen("detail");
   }
 
   function handleBackToTickets() {
-    setSelectedTicket(null);
+    setSelectedTicketId(null);
     setScreen("home");
   }
 
@@ -184,7 +186,7 @@ export default function App() {
                     : ""
                 }`}
                 onClick={() => {
-                  setSelectedTicket(null);
+                  setSelectedTicketId(null);
                   setScreen("home");
                 }}
               >
@@ -199,7 +201,7 @@ export default function App() {
                     : ""
                 }`}
                 onClick={() => {
-                  setSelectedTicket(null);
+                  setSelectedTicketId(null);
                   setScreen("create");
                 }}
               >
@@ -225,17 +227,6 @@ export default function App() {
           </div>
         </header>
 
-        {screen === "create" && (
-          <CreateTicket
-            requesterId={
-              currentRequester.id
-            }
-            requesterName={
-              currentRequester.name
-            }
-          />
-        )}
-
         {screen === "home" && (
           <MyTickets
             requesterId={
@@ -247,164 +238,33 @@ export default function App() {
           />
         )}
 
+        {screen === "create" && (
+          <CreateTicket
+            requesterId={
+              currentRequester.id
+            }
+            requesterName={
+              currentRequester.name
+            }
+          />
+        )}
+
         {screen === "detail" &&
-          selectedTicket && (
-            <section
-              className="container py-4"
-              style={{
-                maxWidth: 1000,
-              }}
-            >
-              <button
-                type="button"
-                className="btn btn-link px-0 mb-3 text-decoration-none"
-                style={{
-                  color: "#006B3C",
-                }}
-                onClick={
-                  handleBackToTickets
-                }
-              >
-                ← Back to My Tickets
-              </button>
-
-              <div className="card shadow-sm">
-                <div className="card-body p-4">
-                  <div className="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-                    <div>
-                      <p className="text-muted mb-1">
-                        Ticket Number
-                      </p>
-
-                      <h1 className="h4 mb-0">
-                        {
-                          selectedTicket.ticketNumber
-                        }
-                      </h1>
-                    </div>
-
-                    <span
-                      className="badge"
-                      style={{
-                        backgroundColor:
-                          "#EAF6EF",
-                        color:
-                          "#006B3C",
-                        fontSize:
-                          "0.9rem",
-                      }}
-                    >
-                      New
-                    </span>
-                  </div>
-
-                  <div className="row g-4">
-                    <div className="col-md-6">
-                      <p className="text-muted mb-1">
-                        Requester
-                      </p>
-
-                      <p className="fw-semibold mb-0">
-                        {
-                          currentRequester.name
-                        }
-                      </p>
-                    </div>
-
-                    <div className="col-md-6">
-                      <p className="text-muted mb-1">
-                        Category
-                      </p>
-
-                      <p className="fw-semibold mb-0">
-                        {
-                          selectedTicket.category
-                            .name
-                        }
-                      </p>
-                    </div>
-
-                    <div className="col-md-6">
-                      <p className="text-muted mb-1">
-                        Requested Priority
-                      </p>
-
-                      <p className="fw-semibold mb-0">
-                        {selectedTicket.requestedPriority ===
-                        "LOW"
-                          ? "Low"
-                          : selectedTicket.requestedPriority ===
-                              "MEDIUM"
-                            ? "Medium"
-                            : "High"}
-                      </p>
-                    </div>
-
-                    <div className="col-md-6">
-                      <p className="text-muted mb-1">
-                        Created
-                      </p>
-
-                      <p className="fw-semibold mb-0">
-                        {new Date(
-                          selectedTicket.createdAt
-                        ).toLocaleString()}
-                      </p>
-                    </div>
-
-                    <div className="col-12">
-                      <p className="text-muted mb-1">
-                        Summary
-                      </p>
-
-                      <p className="fw-semibold mb-0">
-                        {
-                          selectedTicket.summary
-                        }
-                      </p>
-                    </div>
-
-                    <div className="col-12">
-                      <p className="text-muted mb-1">
-                        Description
-                      </p>
-
-                      <p className="mb-0">
-                        {
-                          selectedTicket.description
-                        }
-                      </p>
-                    </div>
-                  </div>
-
-                  <div
-                    className="mt-4 p-3 rounded"
-                    style={{
-                      backgroundColor:
-                        "#EAF6EF",
-                      border:
-                        "1px solid #D6E0DA",
-                    }}
-                  >
-                    <strong
-                      style={{
-                        color:
-                          "#006B3C",
-                      }}
-                    >
-                      Ticket detail preview
-                    </strong>
-
-                    <p className="mb-0 mt-1 text-muted">
-                      Full requester ticket
-                      detail features will be
-                      completed in the next
-                      issue.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </section>
+          selectedTicketId !== null && (
+            <TicketDetail
+              ticketId={
+                selectedTicketId
+              }
+              requesterId={
+                currentRequester.id
+              }
+              requesterName={
+                currentRequester.name
+              }
+              onBack={
+                handleBackToTickets
+              }
+            />
           )}
       </main>
     );
@@ -559,8 +419,7 @@ export default function App() {
                     event
                   ) =>
                     setSelectedRequesterId(
-                      event.target
-                        .value
+                      event.target.value
                     )
                   }
                 >
