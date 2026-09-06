@@ -303,3 +303,140 @@ export async function getTicketById(
 
   return response.json();
 }
+
+export interface Attachment {
+  id: number;
+  ticketId: number;
+  originalName: string;
+  mimeType: string;
+  sizeBytes: number;
+  isRemoved: boolean;
+  removalReason:
+    | string
+    | null;
+  removedAt:
+    | string
+    | null;
+  createdAt: string;
+}
+
+export async function getAttachments(
+  ticketId: number,
+  requesterId: number
+): Promise<Attachment[]> {
+  const query =
+    new URLSearchParams();
+
+  query.set(
+    "requesterId",
+    String(requesterId)
+  );
+
+  const response =
+    await fetch(
+      `${API_URL}/api/tickets/${ticketId}/attachments?${query.toString()}`
+    );
+
+  if (!response.ok) {
+    throw new Error(
+      "Unable to load attachments"
+    );
+  }
+
+  return response.json();
+}
+
+export async function uploadAttachment(
+  ticketId: number,
+  requesterId: number,
+  file: File
+): Promise<Attachment> {
+  const formData =
+    new FormData();
+
+  formData.append(
+    "requesterId",
+    String(requesterId)
+  );
+
+  formData.append(
+    "file",
+    file
+  );
+
+  const response =
+    await fetch(
+      `${API_URL}/api/tickets/${ticketId}/attachments`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+  if (!response.ok) {
+    const body =
+      await response
+        .json()
+        .catch(() => null);
+
+    throw new Error(
+      body?.error?.message ||
+        "Unable to upload attachment"
+    );
+  }
+
+  return response.json();
+}
+
+export async function removeAttachment(
+  attachmentId: number,
+  requesterId: number,
+  removalReason: string
+): Promise<Attachment> {
+  const response =
+    await fetch(
+      `${API_URL}/api/attachments/${attachmentId}`,
+      {
+        method: "DELETE",
+
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+
+        body: JSON.stringify({
+          requesterId,
+          removalReason,
+        }),
+      }
+    );
+
+  if (!response.ok) {
+    const body =
+      await response
+        .json()
+        .catch(() => null);
+
+    throw new Error(
+      body?.error?.message ||
+        "Unable to remove attachment"
+    );
+  }
+
+  return response.json();
+}
+
+export function getAttachmentDownloadUrl(
+  attachmentId: number,
+  requesterId: number
+) {
+  const query =
+    new URLSearchParams();
+
+  query.set(
+    "requesterId",
+    String(requesterId)
+  );
+
+  return `${API_URL}/api/attachments/${attachmentId}/download?${query.toString()}`;
+}

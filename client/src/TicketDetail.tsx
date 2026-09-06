@@ -6,6 +6,7 @@ import {
   getTicketById,
   TicketDetail as TicketDetailData,
 } from "./api.js";
+import AttachmentSection from "./AttachmentSection.js";
 
 interface TicketDetailProps {
   ticketId: number;
@@ -297,9 +298,7 @@ export default function TicketDetail({
                     "pre-wrap",
                 }}
               >
-                {
-                  ticket.description
-                }
+                {ticket.description}
               </p>
             </div>
           </div>
@@ -325,18 +324,11 @@ export default function TicketDetail({
           read-only for Requesters.
         </p>
       </div>
+
+      <AttachmentSection
+        ticketId={ticket.id}
+        requesterId={requesterId}
+      />
     </section>
   );
 }
-
-<div className="card shadow-sm mt-4">
-  <div className="card-body p-4">
-    <h2 className="h5 mb-2">
-      Attachments
-    </h2>
-
-    <p className="text-muted mb-0">
-      No attachments yet.
-    </p>
-  </div>
-</div>

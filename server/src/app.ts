@@ -1,6 +1,7 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import { getPrisma } from "./prisma.js";
+import { attachmentRouter } from "./attachments.js";
 
 void getPrisma;
 
@@ -8,6 +9,8 @@ export const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+app.use("/api", attachmentRouter);
 
 app.get("/api/health", (_req: Request, res: Response) => {
   res.status(200).json({
@@ -108,188 +111,190 @@ app.get(
 /*
  * My Tickets
  */
-app.get("/api/tickets", async (req: Request, res: Response) => {
-  try {
-    const prisma = getPrisma();
+app.get(
+  "/api/tickets",
+  async (req: Request, res: Response) => {
+    try {
+      const prisma = getPrisma();
 
-    const requesterId = Number(
-      req.query.requesterId
-    );
+      const requesterId = Number(
+        req.query.requesterId
+      );
 
-    const search =
-      typeof req.query.search === "string"
-        ? req.query.search.trim()
-        : "";
+      const search =
+        typeof req.query.search === "string"
+          ? req.query.search.trim()
+          : "";
 
-    const status =
-      typeof req.query.status === "string"
-        ? req.query.status
-        : "";
+      const status =
+        typeof req.query.status === "string"
+          ? req.query.status
+          : "";
 
-    const categoryId =
-      typeof req.query.categoryId === "string"
-        ? Number(req.query.categoryId)
-        : undefined;
+      const categoryId =
+        typeof req.query.categoryId === "string"
+          ? Number(req.query.categoryId)
+          : undefined;
 
-    const requestedPriority =
-      typeof req.query.requestedPriority ===
-      "string"
-        ? req.query.requestedPriority
-        : "";
+      const requestedPriority =
+        typeof req.query.requestedPriority === "string"
+          ? req.query.requestedPriority
+          : "";
 
-    const sort =
-      typeof req.query.sort === "string"
-        ? req.query.sort
-        : "createdAt_desc";
+      const sort =
+        typeof req.query.sort === "string"
+          ? req.query.sort
+          : "createdAt_desc";
 
-    const page =
-      typeof req.query.page === "string"
-        ? Math.max(
-            1,
-            Number(req.query.page)
-          )
-        : 1;
+      const page =
+        typeof req.query.page === "string"
+          ? Math.max(
+              1,
+              Number(req.query.page)
+            )
+          : 1;
 
-    const pageSize =
-      typeof req.query.pageSize === "string"
-        ? Math.max(
-            1,
-            Number(req.query.pageSize)
-          )
-        : 10;
+      const pageSize =
+        typeof req.query.pageSize === "string"
+          ? Math.max(
+              1,
+              Number(req.query.pageSize)
+            )
+          : 10;
 
-    if (!Number.isInteger(requesterId)) {
-      return res.status(400).json({
-        error: {
-          code: "VALIDATION_ERROR",
-          message:
-            "Requester is required.",
-        },
-      });
-    }
+      if (!Number.isInteger(requesterId)) {
+        return res.status(400).json({
+          error: {
+            code: "VALIDATION_ERROR",
+            message:
+              "Requester is required.",
+          },
+        });
+      }
 
-    const requester =
-      await prisma.requesterUser.findFirst({
-        where: {
-          id: requesterId,
-          isActive: true,
-        },
-      });
+      const requester =
+        await prisma.requesterUser.findFirst({
+          where: {
+            id: requesterId,
+            isActive: true,
+          },
+        });
 
-    if (!requester) {
-      return res.status(404).json({
-        error: {
-          code: "NOT_FOUND",
-          message:
-            "Development Requester was not found.",
-        },
-      });
-    }
+      if (!requester) {
+        return res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message:
+              "Development Requester was not found.",
+          },
+        });
+      }
 
-    const where = {
-      requesterId,
+      const where = {
+        requesterId,
 
-      ...(search
-        ? {
-            OR: [
-              {
-                ticketNumber: {
-                  contains: search,
-                  mode: "insensitive" as const,
+        ...(search
+          ? {
+              OR: [
+                {
+                  ticketNumber: {
+                    contains: search,
+                    mode: "insensitive" as const,
+                  },
                 },
-              },
-              {
-                summary: {
-                  contains: search,
-                  mode: "insensitive" as const,
+                {
+                  summary: {
+                    contains: search,
+                    mode: "insensitive" as const,
+                  },
                 },
-              },
-            ],
-          }
-        : {}),
+              ],
+            }
+          : {}),
 
-      ...(status
-        ? {
-            currentStatus:
-              status as "NEW",
-          }
-        : {}),
+        ...(status
+          ? {
+              currentStatus:
+                status as "NEW",
+            }
+          : {}),
 
-      ...(Number.isInteger(categoryId)
-        ? {
-            categoryId,
-          }
-        : {}),
+        ...(Number.isInteger(categoryId)
+          ? {
+              categoryId,
+            }
+          : {}),
 
-      ...(requestedPriority
-        ? {
-            requestedPriority:
-              requestedPriority as
-                | "LOW"
-                | "MEDIUM"
-                | "HIGH",
-          }
-        : {}),
-    };
+        ...(requestedPriority
+          ? {
+              requestedPriority:
+                requestedPriority as
+                  | "LOW"
+                  | "MEDIUM"
+                  | "HIGH",
+            }
+          : {}),
+      };
 
-    const [items, totalItems] =
-      await Promise.all([
-        prisma.ticket.findMany({
-          where,
+      const [items, totalItems] =
+        await Promise.all([
+          prisma.ticket.findMany({
+            where,
 
-          include: {
-            category: {
-              select: {
-                id: true,
-                name: true,
+            include: {
+              category: {
+                select: {
+                  id: true,
+                  name: true,
+                },
               },
             },
-          },
 
-          orderBy:
-            sort === "createdAt_asc"
-              ? {
-                  createdAt: "asc",
-                }
-              : {
-                  createdAt: "desc",
-                },
+            orderBy:
+              sort === "createdAt_asc"
+                ? {
+                    createdAt: "asc",
+                  }
+                : {
+                    createdAt: "desc",
+                  },
 
-          skip:
-            (page - 1) * pageSize,
+            skip:
+              (page - 1) * pageSize,
 
-          take: pageSize,
-        }),
+            take: pageSize,
+          }),
 
-        prisma.ticket.count({
-          where,
-        }),
-      ]);
+          prisma.ticket.count({
+            where,
+          }),
+        ]);
 
-    const totalPages =
-      totalItems === 0
-        ? 0
-        : Math.ceil(
-            totalItems / pageSize
-          );
+      const totalPages =
+        totalItems === 0
+          ? 0
+          : Math.ceil(
+              totalItems / pageSize
+            );
 
-    return res.status(200).json({
-      items,
-      page,
-      pageSize,
-      totalItems,
-      totalPages,
-    });
-  } catch {
-    return res.status(500).json({
-      error: {
-        code: "SERVER_ERROR",
-        message:
-          "Unable to load tickets.",
-      },
-    });
+      return res.status(200).json({
+        items,
+        page,
+        pageSize,
+        totalItems,
+        totalPages,
+      });
+    } catch {
+      return res.status(500).json({
+        error: {
+          code: "SERVER_ERROR",
+          message:
+            "Unable to load tickets.",
+        },
+      });
+    }
   }
-});
+);
 
 /*
  * Requester Ticket Detail
@@ -339,16 +344,10 @@ app.get(
         });
       }
 
-      /*
-       * Ownership is enforced here.
-       * Searching by both ticket ID and requester ID means
-       * another Requester cannot read this Ticket.
-       */
       const ticket =
-        await prisma.ticket.findFirst({
+        await prisma.ticket.findUnique({
           where: {
             id: ticketId,
-            requesterId,
           },
 
           include: {
@@ -378,9 +377,22 @@ app.get(
         });
       }
 
-      return res.status(200).json(
-        ticket
-      );
+      if (
+        ticket.requesterId !==
+        requesterId
+      ) {
+        return res.status(403).json({
+          error: {
+            code: "FORBIDDEN",
+            message:
+              "You are not authorized to access this resource.",
+          },
+        });
+      }
+
+      return res
+        .status(200)
+        .json(ticket);
     } catch {
       return res.status(500).json({
         error: {
@@ -586,9 +598,9 @@ app.post(
           },
         });
 
-      return res.status(201).json(
-        ticket
-      );
+      return res
+        .status(201)
+        .json(ticket);
     } catch {
       return res.status(500).json({
         error: {

@@ -3,11 +3,11 @@
 ## 1. General API Conventions
 
 - **Base Path:** `/api`
-- **Content-Type:** `application/json` for standard requests and responses; `multipart/form-data` exclusively for attachment file uploads.
-- **Requester Context:** All requester-scoped endpoints require identification via the query parameter or body property `requesterId` (simulating active user session in Lab 2).
-- **Backend Ownership Enforcement:** The backend must independently verify that the requested ticket or attachment belongs to the provided `requesterId`. The server responds with `403 Forbidden` if ownership does not match.
-- **Timestamps:** Returned in ISO 8601 UTC format (e.g., `2026-09-05T10:00:00.000Z`).
-- **Standardized Error Envelope:**
+- **Content-Type:** `application/json` for standard requests and responses; `multipart/form-data` for Attachment file uploads.
+- **Requester Context:** Requester-scoped endpoints use `requesterId` through the query string, request body, or multipart form data depending on the endpoint. This represents the selected Development Requester in Lab 2.
+- **Backend Ownership Enforcement:** The backend independently verifies that the requested Ticket or Attachment belongs to the supplied `requesterId`. An existing record owned by another Requester is rejected with `403 Forbidden`.
+- **Timestamps:** Returned in ISO 8601 UTC format, for example `2026-09-06T07:48:30.568Z`.
+- **Standard Error Envelope:**
 
 ```json
 {
@@ -21,16 +21,18 @@
 }
 ```
 
-When an error is not field-specific (e.g., `FORBIDDEN`, `NOT_FOUND`, `SERVER_ERROR`), the `fields` object is omitted.
+When an error is not field-specific, such as `FORBIDDEN`, `NOT_FOUND`, or a server error, the `fields` object may be omitted.
 
 ---
 
 ## 2. Reference Data Endpoints
 
 ### 2.1 GET `/api/development-requesters`
-Returns all active Development Requesters available for testing.
+
+Returns active Development Requesters available for Lab 2 testing.
 
 #### Response: `200 OK`
+
 ```json
 [
   {
@@ -45,15 +47,19 @@ Returns all active Development Requesters available for testing.
   }
 ]
 ```
-- **Rules:** Only records where `isActive = true` are returned. Inactive records must be excluded.
+
+- **Rules:** Only records where `isActive = true` are returned. Inactive Requesters are excluded.
+
 - **Error:** `500 Internal Server Error`
 
 ---
 
 ### 2.2 GET `/api/categories`
+
 Returns active Ticket Categories.
 
 #### Response: `200 OK`
+
 ```json
 [
   { "id": 1, "name": "Account and Access" },
@@ -62,15 +68,19 @@ Returns active Ticket Categories.
   { "id": 4, "name": "Network" }
 ]
 ```
-- **Rules:** Only categories with `isActive = true` are returned.
+
+- **Rules:** Only Categories with `isActive = true` are returned.
+
 - **Error:** `500 Internal Server Error`
 
 ---
 
 ### 2.3 GET `/api/related-systems`
+
 Returns active Related Systems.
 
 #### Response: `200 OK`
+
 ```json
 [
   { "id": 1, "name": "Email" },
@@ -82,7 +92,9 @@ Returns active Related Systems.
   { "id": 7, "name": "Corporate Laptop" }
 ]
 ```
-- **Rules:** Only related systems with `isActive = true` are returned.
+
+- **Rules:** Only Related Systems with `isActive = true` are returned.
+
 - **Error:** `500 Internal Server Error`
 
 ---
@@ -90,9 +102,11 @@ Returns active Related Systems.
 ## 3. Ticket Endpoints
 
 ### 3.1 POST `/api/tickets`
-Creates a new support ticket under the active Development Requester.
+
+Creates a new support Ticket for the selected Development Requester.
 
 #### Request Body
+
 ```json
 {
   "requesterId": 1,
@@ -105,14 +119,16 @@ Creates a new support ticket under the active Development Requester.
 ```
 
 #### Validation Constraints
-- `requesterId`: Mandatory integer, must reference an existing active `RequesterUser`.
-- `categoryId`: Mandatory integer, must reference an existing active `Category`.
-- `relatedSystemId`: Mandatory integer, must reference an existing active `RelatedSystem`.
-- `summary`: Mandatory string, trimmed, 5–120 characters.
-- `description`: Mandatory string, trimmed, 10–4000 characters.
-- `requestedPriority`: Mandatory enum, exactly one of `LOW`, `MEDIUM`, `HIGH`.
+
+- `requesterId`: Required integer referencing an active `RequesterUser`.
+- `categoryId`: Required integer referencing an active `Category`.
+- `relatedSystemId`: Required integer referencing an active `RelatedSystem`.
+- `summary`: Required string, trimmed, 5–120 characters.
+- `description`: Required string, trimmed, 10–4000 characters.
+- `requestedPriority`: Required value: `LOW`, `MEDIUM`, or `HIGH`.
 
 #### Response: `201 Created`
+
 ```json
 {
   "id": 101,
@@ -130,87 +146,106 @@ Creates a new support ticket under the active Development Requester.
 ```
 
 #### Architectural Note on Attachments
-Attachments selected during ticket creation are uploaded sequentially via `POST /api/tickets/:id/attachments` immediately after receiving the `201 Created` response. If an attachment upload fails, the ticket remains saved (BR-18).
+
+Attachments selected during Ticket creation are uploaded after the Ticket receives a successful `201 Created` response using `POST /api/tickets/:id/attachments`.
+
+If a later Attachment upload fails, the Ticket remains saved.
 
 #### Errors
-- `400 Bad Request` — Validation failure (missing fields or invalid lengths).
-- `404 Not Found` — Referenced `requesterId`, `categoryId`, or `relatedSystemId` does not exist or is inactive.
+
+- `400 Bad Request` — Required fields are missing or invalid.
+- `404 Not Found` — Referenced Requester, Category, or Related System cannot be used.
 - `500 Internal Server Error` — Safe server failure.
 
 ---
 
 ### 3.2 GET `/api/tickets`
-Retrieves a paginated list of tickets owned exclusively by the specified Requester, supporting search, filtering, and sorting.
+
+Retrieves a paginated list of Tickets owned by the specified Requester with search, filtering, and sorting.
 
 #### Query Parameters
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `requesterId` | Integer | **Yes** | — | Active Development Requester ID |
-| `search` | String | No | — | Partial search matching `ticketNumber`, `summary`, or `description` |
+| `requesterId` | Integer | **Yes** | — | Selected Development Requester ID |
+| `search` | String | No | — | Partial search matching Ticket Number or Summary |
 | `categoryId` | Integer | No | — | Filter by Category ID |
-| `status` | String | No | — | Filter by `currentStatus` (e.g., `NEW`) |
-| `priority` | String | No | — | Filter by `requestedPriority` (`LOW`, `MEDIUM`, `HIGH`) |
-| `sortBy` | String | No | `createdAt` | Sort field (Lab 2 supports `createdAt`) |
-| `sortDir` | String | No | `desc` | Sort direction (`asc` or `desc`) |
+| `status` | String | No | — | Filter by Current Status, currently `NEW` |
+| `requestedPriority` | String | No | — | Filter by `LOW`, `MEDIUM`, or `HIGH` |
+| `sort` | String | No | `createdAt_desc` | `createdAt_desc` or `createdAt_asc` |
 | `page` | Integer | No | `1` | 1-based page index |
-| `pageSize` | Integer | No | `10` | Items per page (allowed: 5, 10, 25, 50) |
+| `pageSize` | Integer | No | `10` | Number of Tickets requested per page |
 
 #### Response: `200 OK`
+
 ```json
 {
   "items": [
     {
       "id": 101,
       "ticketNumber": "TKT-2026-000101",
+      "requesterId": 1,
+      "categoryId": 2,
+      "relatedSystemId": 7,
       "summary": "Laptop battery drains quickly",
-      "category": {
-        "id": 2,
-        "name": "Hardware"
-      },
-      "relatedSystem": {
-        "id": 7,
-        "name": "Corporate Laptop"
-      },
+      "description": "The laptop battery loses charge within 90 minutes even under light workload.",
       "requestedPriority": "MEDIUM",
       "currentStatus": "NEW",
       "createdAt": "2026-09-05T10:00:00.000Z",
-      "updatedAt": "2026-09-05T10:00:00.000Z"
+      "updatedAt": "2026-09-05T10:00:00.000Z",
+      "category": {
+        "id": 2,
+        "name": "Hardware"
+      }
     }
   ],
-  "pagination": {
-    "page": 1,
-    "pageSize": 10,
-    "totalItems": 1,
-    "totalPages": 1
-  }
+  "page": 1,
+  "pageSize": 10,
+  "totalItems": 1,
+  "totalPages": 1
 }
 ```
 
 #### Rules
-- Results strictly contain tickets where `ticket.requesterId == query.requesterId`.
-- If the requester has no tickets, `items` returns `[]` with `totalItems: 0`.
-- If filters/search match no tickets, `items` returns `[]`.
+
+- Returned Tickets are restricted to the supplied `requesterId`.
+- Search matches Ticket Number or Summary.
+- Category, Status, and Requested Priority filters may be combined.
+- Sorting supports newest-first and oldest-first Created Date order.
+- If a Requester has no Tickets, `items` is empty and `totalItems` is `0`.
+- If search or filters match no Tickets, `items` is empty.
 
 #### Errors
+
 - `400 Bad Request` — Missing `requesterId` or invalid query parameters.
-- `404 Not Found` — Specified `requesterId` does not exist.
+- `404 Not Found` — Specified Requester does not exist.
 - `500 Internal Server Error`
 
 ---
 
 ### 3.3 GET `/api/tickets/:id`
-Retrieves full details of a single ticket. Enforces requester ownership.
+
+Retrieves full information for one Ticket and enforces Requester ownership.
 
 #### Query Parameter
-- `requesterId` (Integer, **Required**): Current active requester context.
+
+- `requesterId` (Integer, **Required**): Current Development Requester context.
 
 #### Response: `200 OK`
+
 ```json
 {
   "id": 101,
   "ticketNumber": "TKT-2026-000101",
-  "ticketDate": "2026-09-05T10:00:00.000Z",
+  "requesterId": 1,
+  "categoryId": 2,
+  "relatedSystemId": 7,
+  "summary": "Laptop battery drains quickly",
+  "description": "The laptop battery loses charge within 90 minutes even under light workload.",
+  "requestedPriority": "MEDIUM",
+  "currentStatus": "NEW",
+  "createdAt": "2026-09-05T10:00:00.000Z",
+  "updatedAt": "2026-09-05T10:00:00.000Z",
   "requester": {
     "id": 1,
     "name": "Jennifer Anderson",
@@ -223,19 +258,16 @@ Retrieves full details of a single ticket. Enforces requester ownership.
   "relatedSystem": {
     "id": 7,
     "name": "Corporate Laptop"
-  },
-  "summary": "Laptop battery drains quickly",
-  "description": "The laptop battery loses charge within 90 minutes even under light workload.",
-  "requestedPriority": "MEDIUM",
-  "currentStatus": "NEW",
-  "createdAt": "2026-09-05T10:00:00.000Z",
-  "updatedAt": "2026-09-05T10:00:00.000Z"
+  }
 }
 ```
 
+`createdAt` is used as the Ticket Date shown by the Requester UI.
+
 #### Errors
-- `400 Bad Request` — Missing `requesterId` parameter.
-- `403 Forbidden` — Ticket exists but belongs to a different Requester.
+
+- `400 Bad Request` — Missing or invalid `requesterId`.
+- `403 Forbidden` — Ticket exists but belongs to another Requester.
 - `404 Not Found` — Ticket does not exist.
 - `500 Internal Server Error`
 
@@ -244,12 +276,15 @@ Retrieves full details of a single ticket. Enforces requester ownership.
 ## 4. Attachment Endpoints
 
 ### 4.1 GET `/api/tickets/:id/attachments`
-Retrieves attachment metadata for a ticket owned by the active Requester.
+
+Retrieves active and soft-removed Attachment metadata for a Ticket owned by the selected Requester.
 
 #### Query Parameter
+
 - `requesterId` (Integer, **Required**)
 
 #### Response: `200 OK`
+
 ```json
 [
   {
@@ -270,7 +305,7 @@ Retrieves attachment metadata for a ticket owned by the active Requester.
     "mimeType": "image/png",
     "sizeBytes": 1205000,
     "isRemoved": true,
-    "removalReason": "Uploaded blurry photo by mistake",
+    "removalReason": "Uploaded the wrong image",
     "removedAt": "2026-09-05T10:15:00.000Z",
     "createdAt": "2026-09-05T10:03:00.000Z"
   }
@@ -278,10 +313,14 @@ Retrieves attachment metadata for a ticket owned by the active Requester.
 ```
 
 #### Rules
-- Both active and soft-removed attachment metadata are returned to preserve the audit trail.
-- Removed attachments show `isRemoved: true`, `removalReason`, and `removedAt`.
+
+- Active and soft-removed Attachment metadata remain available.
+- Removed Attachments have `isRemoved: true` with `removalReason` and `removedAt`.
+- Removed Attachment files are not downloadable.
 
 #### Errors
+
+- `400 Bad Request` — Missing or invalid `requesterId`.
 - `403 Forbidden` — Ticket belongs to another Requester.
 - `404 Not Found` — Ticket does not exist.
 - `500 Internal Server Error`
@@ -289,20 +328,29 @@ Retrieves attachment metadata for a ticket owned by the active Requester.
 ---
 
 ### 4.2 POST `/api/tickets/:id/attachments`
-Uploads a single permitted file attachment to an owned ticket.
+
+Uploads one permitted Attachment to an owned Ticket.
 
 - **Content-Type:** `multipart/form-data`
-- **Form Fields:**
-  - `requesterId`: Integer (Required)
-  - `file`: Binary file stream (Required)
+
+#### Form Fields
+
+- `requesterId`: Integer, required.
+- `file`: Binary file, required.
 
 #### Validation Rules
-- Supported MIME types: `image/jpeg`, `image/png`, `image/webp`, `application/pdf`.
-- Maximum file size: 5 MB (5,242,880 bytes).
-- Active limit: Maximum 5 active (`isRemoved = false`) attachments per ticket. Attempting to upload a 6th active attachment is rejected.
-- Ticket ownership: Ticket must belong to `requesterId`.
+
+- Supported MIME types:
+  - `image/jpeg`
+  - `image/png`
+  - `image/webp`
+  - `application/pdf`
+- Maximum file size: 5 MB (`5,242,880` bytes).
+- Maximum five active (`isRemoved = false`) Attachments per Ticket.
+- The Ticket must belong to the supplied `requesterId`.
 
 #### Response: `201 Created`
+
 ```json
 {
   "id": 3,
@@ -311,70 +359,87 @@ Uploads a single permitted file attachment to an owned ticket.
   "mimeType": "image/jpeg",
   "sizeBytes": 854000,
   "isRemoved": false,
+  "removalReason": null,
+  "removedAt": null,
   "createdAt": "2026-09-05T10:05:00.000Z"
 }
 ```
 
 #### Errors
-- `400 Bad Request` — Missing file, active attachment limit (5) reached, or invalid requester ID.
-- `403 Forbidden` — Ticket belongs to a different Requester.
+
+- `400 Bad Request` — Missing file, invalid Requester information, or maximum active Attachment count reached.
+- `403 Forbidden` — Ticket belongs to another Requester.
 - `404 Not Found` — Ticket does not exist.
-- `413 Payload Too Large` — File size exceeds 5 MB.
-- `415 Unsupported Media Type` — File format not in permitted list (JPG, PNG, WEBP, PDF).
+- `413 Payload Too Large` — File exceeds 5 MB.
+- `415 Unsupported Media Type` — File type is not permitted.
 - `500 Internal Server Error`
 
 ---
 
 ### 4.3 GET `/api/attachments/:id/download`
-Downloads or previews an active attachment.
+
+Downloads an active Attachment belonging to an owned Ticket.
 
 #### Query Parameter
+
 - `requesterId` (Integer, **Required**)
 
 #### Response: `200 OK`
-- Returns binary stream with headers:
-  - `Content-Type: <mimeType>`
-  - `Content-Disposition: inline; filename="<originalName>"` (or `attachment` depending on client trigger)
-  - `Content-Length: <sizeBytes>`
+
+Returns the binary file with appropriate headers, including:
+
+- `Content-Type: <mimeType>`
+- `Content-Disposition: attachment; filename*=UTF-8''<encodedOriginalName>`
+
+The browser should treat this endpoint as a file download.
 
 #### Errors
-- `403 Forbidden` — Attachment belongs to a ticket owned by another Requester.
+
+- `400 Bad Request` — Missing or invalid `requesterId`.
+- `403 Forbidden` — Attachment belongs to another Requester's Ticket.
 - `404 Not Found` — Attachment does not exist.
-- `410 Gone` — Attachment has been soft-removed. Removed files cannot be downloaded or previewed.
+- `410 Gone` — Attachment has been soft-removed and can no longer be downloaded.
 - `500 Internal Server Error`
 
 ---
 
 ### 4.4 DELETE `/api/attachments/:id`
-Performs a soft-removal on an attachment belonging to an owned ticket.
+
+Performs soft-removal of an Attachment belonging to an owned Ticket.
 
 #### Request Body
+
 ```json
 {
   "requesterId": 1,
-  "removalReason": "The document contained obsolete battery serial numbers."
+  "removalReason": "Uploaded the wrong document"
 }
 ```
 
 #### Validation Constraints
-- `requesterId`: Mandatory integer.
-- `removalReason`: Mandatory string, trimmed, 5–255 characters.
+
+- `requesterId`: Required integer.
+- `removalReason`: Required string.
+- `removalReason` is trimmed and must contain non-whitespace text.
+- No additional Lab 2 minimum length is imposed on a non-empty removal reason.
 
 #### Response: `200 OK`
+
 ```json
 {
   "id": 1,
   "ticketId": 101,
   "originalName": "battery-diagnostics.pdf",
   "isRemoved": true,
-  "removalReason": "The document contained obsolete battery serial numbers.",
+  "removalReason": "Uploaded the wrong document",
   "removedAt": "2026-09-05T10:20:00.000Z"
 }
 ```
 
 #### Errors
-- `400 Bad Request` — Missing or empty `removalReason`.
-- `403 Forbidden` — Attachment belongs to another Requester's ticket.
+
+- `400 Bad Request` — Missing or blank `removalReason`, or invalid Requester information.
+- `403 Forbidden` — Attachment belongs to another Requester's Ticket.
 - `404 Not Found` — Attachment does not exist.
 - `409 Conflict` — Attachment is already soft-removed.
 - `500 Internal Server Error`
@@ -383,16 +448,19 @@ Performs a soft-removal on an attachment belonging to an owned ticket.
 
 ## 5. Security and Ownership Matrix
 
-| Endpoint | Authorization Rule | Failure Response |
+| Endpoint | Ownership Rule | Failure Response |
 |---|---|---|
-| `GET /api/tickets` | Partitioned strictly by `where: { requesterId }` | Empty array (zero cross-user leakage) |
+| `GET /api/tickets` | Query is scoped by `requesterId` | Only the selected Requester's records are returned |
 | `GET /api/tickets/:id` | `ticket.requesterId === requesterId` | `403 Forbidden` |
 | `POST /api/tickets/:id/attachments` | `ticket.requesterId === requesterId` | `403 Forbidden` |
 | `GET /api/tickets/:id/attachments` | `ticket.requesterId === requesterId` | `403 Forbidden` |
 | `GET /api/attachments/:id/download` | `attachment.ticket.requesterId === requesterId` | `403 Forbidden` |
 | `DELETE /api/attachments/:id` | `attachment.ticket.requesterId === requesterId` | `403 Forbidden` |
 
-All unauthorized attempts return a generic, safe response:
+A forbidden request returns safe error information without exposing another Requester's Ticket or Attachment data.
+
+Example:
+
 ```json
 {
   "error": {
@@ -401,4 +469,5 @@ All unauthorized attempts return a generic, safe response:
   }
 }
 ```
-Internal server stack traces, database table schemas, and absolute file-system storage paths are strictly withheld from all error responses.
+
+Server errors must not expose internal stack traces, database credentials, or absolute upload storage paths to the client.
