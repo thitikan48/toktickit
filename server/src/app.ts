@@ -44,65 +44,77 @@ app.get(
     try {
       const prisma = getPrisma();
 
-      const requesters = await prisma.requesterUser.findMany({
-        where: {
-          isActive: true,
-        },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
-        orderBy: {
-          id: "asc",
-        },
-      });
+      const requesters =
+        await prisma.requesterUser.findMany({
+          where: {
+            isActive: true,
+          },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+          orderBy: {
+            id: "asc",
+          },
+        });
 
       res.status(200).json(requesters);
     } catch {
       res.status(500).json({
         error: {
           code: "SERVER_ERROR",
-          message: "Unable to load Development Requesters.",
+          message:
+            "Unable to load Development Requesters.",
         },
       });
     }
   }
 );
 
-app.get("/api/related-systems", async (_req: Request, res: Response) => {
-  try {
-    const prisma = getPrisma();
+app.get(
+  "/api/related-systems",
+  async (_req: Request, res: Response) => {
+    try {
+      const prisma = getPrisma();
 
-    const relatedSystems = await prisma.relatedSystem.findMany({
-      where: {
-        isActive: true,
-      },
-      select: {
-        id: true,
-        name: true,
-      },
-      orderBy: {
-        id: "asc",
-      },
-    });
+      const relatedSystems =
+        await prisma.relatedSystem.findMany({
+          where: {
+            isActive: true,
+          },
+          select: {
+            id: true,
+            name: true,
+          },
+          orderBy: {
+            id: "asc",
+          },
+        });
 
-    return res.status(200).json(relatedSystems);
-  } catch {
-    return res.status(500).json({
-      error: {
-        code: "SERVER_ERROR",
-        message: "Unable to load Related Systems.",
-      },
-    });
+      return res.status(200).json(relatedSystems);
+    } catch {
+      return res.status(500).json({
+        error: {
+          code: "SERVER_ERROR",
+          message:
+            "Unable to load Related Systems.",
+        },
+      });
+    }
   }
-});
+);
 
+/*
+ * My Tickets
+ */
 app.get("/api/tickets", async (req: Request, res: Response) => {
   try {
     const prisma = getPrisma();
 
-    const requesterId = Number(req.query.requesterId);
+    const requesterId = Number(
+      req.query.requesterId
+    );
 
     const search =
       typeof req.query.search === "string"
@@ -120,7 +132,8 @@ app.get("/api/tickets", async (req: Request, res: Response) => {
         : undefined;
 
     const requestedPriority =
-      typeof req.query.requestedPriority === "string"
+      typeof req.query.requestedPriority ===
+      "string"
         ? req.query.requestedPriority
         : "";
 
@@ -131,35 +144,44 @@ app.get("/api/tickets", async (req: Request, res: Response) => {
 
     const page =
       typeof req.query.page === "string"
-        ? Math.max(1, Number(req.query.page))
+        ? Math.max(
+            1,
+            Number(req.query.page)
+          )
         : 1;
 
     const pageSize =
       typeof req.query.pageSize === "string"
-        ? Math.max(1, Number(req.query.pageSize))
+        ? Math.max(
+            1,
+            Number(req.query.pageSize)
+          )
         : 10;
 
     if (!Number.isInteger(requesterId)) {
       return res.status(400).json({
         error: {
           code: "VALIDATION_ERROR",
-          message: "Requester is required.",
+          message:
+            "Requester is required.",
         },
       });
     }
 
-    const requester = await prisma.requesterUser.findFirst({
-      where: {
-        id: requesterId,
-        isActive: true,
-      },
-    });
+    const requester =
+      await prisma.requesterUser.findFirst({
+        where: {
+          id: requesterId,
+          isActive: true,
+        },
+      });
 
     if (!requester) {
       return res.status(404).json({
         error: {
           code: "NOT_FOUND",
-          message: "Development Requester was not found.",
+          message:
+            "Development Requester was not found.",
         },
       });
     }
@@ -188,7 +210,8 @@ app.get("/api/tickets", async (req: Request, res: Response) => {
 
       ...(status
         ? {
-            currentStatus: status as "NEW",
+            currentStatus:
+              status as "NEW",
           }
         : {}),
 
@@ -200,45 +223,55 @@ app.get("/api/tickets", async (req: Request, res: Response) => {
 
       ...(requestedPriority
         ? {
-            requestedPriority: requestedPriority as
-              | "LOW"
-              | "MEDIUM"
-              | "HIGH",
+            requestedPriority:
+              requestedPriority as
+                | "LOW"
+                | "MEDIUM"
+                | "HIGH",
           }
         : {}),
     };
 
-    const [items, totalItems] = await Promise.all([
-      prisma.ticket.findMany({
-        where,
+    const [items, totalItems] =
+      await Promise.all([
+        prisma.ticket.findMany({
+          where,
 
-        include: {
-          category: {
-            select: {
-              id: true,
-              name: true,
+          include: {
+            category: {
+              select: {
+                id: true,
+                name: true,
+              },
             },
           },
-        },
 
-        orderBy:
-          sort === "createdAt_asc"
-            ? { createdAt: "asc" }
-            : { createdAt: "desc" },
+          orderBy:
+            sort === "createdAt_asc"
+              ? {
+                  createdAt: "asc",
+                }
+              : {
+                  createdAt: "desc",
+                },
 
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      }),
+          skip:
+            (page - 1) * pageSize,
 
-      prisma.ticket.count({
-        where,
-      }),
-    ]);
+          take: pageSize,
+        }),
+
+        prisma.ticket.count({
+          where,
+        }),
+      ]);
 
     const totalPages =
       totalItems === 0
         ? 0
-        : Math.ceil(totalItems / pageSize);
+        : Math.ceil(
+            totalItems / pageSize
+          );
 
     return res.status(200).json({
       items,
@@ -251,172 +284,319 @@ app.get("/api/tickets", async (req: Request, res: Response) => {
     return res.status(500).json({
       error: {
         code: "SERVER_ERROR",
-        message: "Unable to load tickets.",
+        message:
+          "Unable to load tickets.",
       },
     });
   }
 });
 
-app.post("/api/tickets", async (req: Request, res: Response) => {
-  try {
-    const prisma = getPrisma();
+/*
+ * Requester Ticket Detail
+ */
+app.get(
+  "/api/tickets/:id",
+  async (req: Request, res: Response) => {
+    try {
+      const prisma = getPrisma();
 
-    const {
-      requesterId,
-      categoryId,
-      relatedSystemId,
-      summary,
-      description,
-      requestedPriority,
-    } = req.body;
+      const ticketId = Number(
+        req.params.id
+      );
 
-    const fields: Record<string, string> = {};
+      const requesterId = Number(
+        req.query.requesterId
+      );
 
-    const trimmedSummary =
-      typeof summary === "string" ? summary.trim() : "";
+      if (
+        !Number.isInteger(ticketId) ||
+        !Number.isInteger(requesterId)
+      ) {
+        return res.status(400).json({
+          error: {
+            code: "VALIDATION_ERROR",
+            message:
+              "Ticket ID and Requester are required.",
+          },
+        });
+      }
 
-    const trimmedDescription =
-      typeof description === "string"
-        ? description.trim()
-        : "";
+      const requester =
+        await prisma.requesterUser.findFirst({
+          where: {
+            id: requesterId,
+            isActive: true,
+          },
+        });
 
-    if (
-      trimmedSummary.length < 5 ||
-      trimmedSummary.length > 120
-    ) {
-      fields.summary =
-        "Summary must be between 5 and 120 characters.";
-    }
+      if (!requester) {
+        return res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message:
+              "Development Requester was not found.",
+          },
+        });
+      }
 
-    if (
-      trimmedDescription.length < 10 ||
-      trimmedDescription.length > 4000
-    ) {
-      fields.description =
-        "Description must be between 10 and 4000 characters.";
-    }
+      /*
+       * Ownership is enforced here.
+       * Searching by both ticket ID and requester ID means
+       * another Requester cannot read this Ticket.
+       */
+      const ticket =
+        await prisma.ticket.findFirst({
+          where: {
+            id: ticketId,
+            requesterId,
+          },
 
-    if (
-      !["LOW", "MEDIUM", "HIGH"].includes(
-        requestedPriority
-      )
-    ) {
-      fields.requestedPriority =
-        "Requested Priority must be LOW, MEDIUM, or HIGH.";
-    }
+          include: {
+            category: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
 
-    if (!Number.isInteger(requesterId)) {
-      fields.requesterId = "Requester is required.";
-    }
+            relatedSystem: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        });
 
-    if (!Number.isInteger(categoryId)) {
-      fields.categoryId = "Category is required.";
-    }
+      if (!ticket) {
+        return res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message:
+              "Ticket was not found.",
+          },
+        });
+      }
 
-    if (!Number.isInteger(relatedSystemId)) {
-      fields.relatedSystemId =
-        "Related System is required.";
-    }
-
-    if (Object.keys(fields).length > 0) {
-      return res.status(400).json({
+      return res.status(200).json(
+        ticket
+      );
+    } catch {
+      return res.status(500).json({
         error: {
-          code: "VALIDATION_ERROR",
+          code: "SERVER_ERROR",
           message:
-            "The request contains invalid or missing data.",
-          fields,
+            "Unable to load ticket.",
         },
       });
     }
+  }
+);
 
-    const requester = await prisma.requesterUser.findFirst({
-      where: {
-        id: requesterId,
-        isActive: true,
-      },
-    });
+/*
+ * Create Ticket
+ */
+app.post(
+  "/api/tickets",
+  async (req: Request, res: Response) => {
+    try {
+      const prisma = getPrisma();
 
-    if (!requester) {
-      return res.status(404).json({
-        error: {
-          code: "NOT_FOUND",
-          message:
-            "Development Requester was not found.",
-        },
-      });
-    }
-
-    const category =
-      await prisma.category.findUnique({
-        where: {
-          id: categoryId,
-        },
-      });
-
-    if (!category) {
-      return res.status(404).json({
-        error: {
-          code: "NOT_FOUND",
-          message: "Category was not found.",
-        },
-      });
-    }
-
-    const relatedSystem =
-      await prisma.relatedSystem.findFirst({
-        where: {
-          id: relatedSystemId,
-          isActive: true,
-        },
-      });
-
-    if (!relatedSystem) {
-      return res.status(404).json({
-        error: {
-          code: "NOT_FOUND",
-          message: "Related System was not found.",
-        },
-      });
-    }
-
-    const latestTicket =
-      await prisma.ticket.findFirst({
-        orderBy: {
-          id: "desc",
-        },
-        select: {
-          id: true,
-        },
-      });
-
-    const nextNumber =
-      (latestTicket?.id ?? 0) + 1;
-
-    const year = new Date().getFullYear();
-
-    const ticketNumber = `TKT-${year}-${String(
-      nextNumber
-    ).padStart(6, "0")}`;
-
-    const ticket = await prisma.ticket.create({
-      data: {
-        ticketNumber,
+      const {
         requesterId,
         categoryId,
         relatedSystemId,
-        summary: trimmedSummary,
-        description: trimmedDescription,
+        summary,
+        description,
         requestedPriority,
-      },
-    });
+      } = req.body;
 
-    return res.status(201).json(ticket);
-  } catch {
-    return res.status(500).json({
-      error: {
-        code: "SERVER_ERROR",
-        message: "Unable to create ticket.",
-      },
-    });
+      const fields: Record<
+        string,
+        string
+      > = {};
+
+      const trimmedSummary =
+        typeof summary === "string"
+          ? summary.trim()
+          : "";
+
+      const trimmedDescription =
+        typeof description === "string"
+          ? description.trim()
+          : "";
+
+      if (
+        trimmedSummary.length < 5 ||
+        trimmedSummary.length > 120
+      ) {
+        fields.summary =
+          "Summary must be between 5 and 120 characters.";
+      }
+
+      if (
+        trimmedDescription.length < 10 ||
+        trimmedDescription.length > 4000
+      ) {
+        fields.description =
+          "Description must be between 10 and 4000 characters.";
+      }
+
+      if (
+        ![
+          "LOW",
+          "MEDIUM",
+          "HIGH",
+        ].includes(
+          requestedPriority
+        )
+      ) {
+        fields.requestedPriority =
+          "Requested Priority must be LOW, MEDIUM, or HIGH.";
+      }
+
+      if (
+        !Number.isInteger(
+          requesterId
+        )
+      ) {
+        fields.requesterId =
+          "Requester is required.";
+      }
+
+      if (
+        !Number.isInteger(
+          categoryId
+        )
+      ) {
+        fields.categoryId =
+          "Category is required.";
+      }
+
+      if (
+        !Number.isInteger(
+          relatedSystemId
+        )
+      ) {
+        fields.relatedSystemId =
+          "Related System is required.";
+      }
+
+      if (
+        Object.keys(fields).length >
+        0
+      ) {
+        return res.status(400).json({
+          error: {
+            code:
+              "VALIDATION_ERROR",
+            message:
+              "The request contains invalid or missing data.",
+            fields,
+          },
+        });
+      }
+
+      const requester =
+        await prisma.requesterUser.findFirst({
+          where: {
+            id: requesterId,
+            isActive: true,
+          },
+        });
+
+      if (!requester) {
+        return res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message:
+              "Development Requester was not found.",
+          },
+        });
+      }
+
+      const category =
+        await prisma.category.findUnique({
+          where: {
+            id: categoryId,
+          },
+        });
+
+      if (!category) {
+        return res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message:
+              "Category was not found.",
+          },
+        });
+      }
+
+      const relatedSystem =
+        await prisma.relatedSystem.findFirst({
+          where: {
+            id: relatedSystemId,
+            isActive: true,
+          },
+        });
+
+      if (!relatedSystem) {
+        return res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message:
+              "Related System was not found.",
+          },
+        });
+      }
+
+      const latestTicket =
+        await prisma.ticket.findFirst({
+          orderBy: {
+            id: "desc",
+          },
+          select: {
+            id: true,
+          },
+        });
+
+      const nextNumber =
+        (latestTicket?.id ?? 0) +
+        1;
+
+      const year =
+        new Date().getFullYear();
+
+      const ticketNumber = `TKT-${year}-${String(
+        nextNumber
+      ).padStart(6, "0")}`;
+
+      const ticket =
+        await prisma.ticket.create({
+          data: {
+            ticketNumber,
+            requesterId,
+            categoryId,
+            relatedSystemId,
+            summary:
+              trimmedSummary,
+            description:
+              trimmedDescription,
+            requestedPriority,
+          },
+        });
+
+      return res.status(201).json(
+        ticket
+      );
+    } catch {
+      return res.status(500).json({
+        error: {
+          code: "SERVER_ERROR",
+          message:
+            "Unable to create ticket.",
+        },
+      });
+    }
   }
-});
+);

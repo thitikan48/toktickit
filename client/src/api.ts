@@ -30,7 +30,9 @@ export async function checkSystem(): Promise<SystemStatus> {
   );
 
   if (!categoriesResponse.ok) {
-    throw new Error("Unable to load categories");
+    throw new Error(
+      "Unable to load categories"
+    );
   }
 
   const categories: Category[] =
@@ -77,7 +79,9 @@ export async function getCategories(): Promise<
   );
 
   if (!response.ok) {
-    throw new Error("Unable to load categories");
+    throw new Error(
+      "Unable to load categories"
+    );
   }
 
   return response.json();
@@ -142,7 +146,9 @@ export async function createTicket(
   );
 
   if (!response.ok) {
-    throw new Error("Unable to create ticket");
+    throw new Error(
+      "Unable to create ticket"
+    );
   }
 
   return response.json();
@@ -167,6 +173,17 @@ export interface TicketListItem {
   };
 }
 
+/*
+ * Issue 5: Requester Ticket Detail
+ */
+export interface TicketDetail
+  extends TicketListItem {
+  relatedSystem: {
+    id: number;
+    name: string;
+  };
+}
+
 export interface TicketListResponse {
   items: TicketListItem[];
   page: number;
@@ -181,7 +198,9 @@ export interface GetTicketsParams {
   status?: string;
   categoryId?: number;
   requestedPriority?: RequestedPriority;
-  sort?: "createdAt_asc" | "createdAt_desc";
+  sort?:
+    | "createdAt_asc"
+    | "createdAt_desc";
   page?: number;
   pageSize?: number;
 }
@@ -197,11 +216,17 @@ export async function getTickets(
   );
 
   if (params.search) {
-    query.set("search", params.search);
+    query.set(
+      "search",
+      params.search
+    );
   }
 
   if (params.status) {
-    query.set("status", params.status);
+    query.set(
+      "status",
+      params.status
+    );
   }
 
   if (params.categoryId) {
@@ -219,11 +244,17 @@ export async function getTickets(
   }
 
   if (params.sort) {
-    query.set("sort", params.sort);
+    query.set(
+      "sort",
+      params.sort
+    );
   }
 
   if (params.page) {
-    query.set("page", String(params.page));
+    query.set(
+      "page",
+      String(params.page)
+    );
   }
 
   if (params.pageSize) {
@@ -238,7 +269,36 @@ export async function getTickets(
   );
 
   if (!response.ok) {
-    throw new Error("Unable to load tickets");
+    throw new Error(
+      "Unable to load tickets"
+    );
+  }
+
+  return response.json();
+}
+
+/*
+ * Issue 5: Load one owned Ticket
+ */
+export async function getTicketById(
+  ticketId: number,
+  requesterId: number
+): Promise<TicketDetail> {
+  const query = new URLSearchParams();
+
+  query.set(
+    "requesterId",
+    String(requesterId)
+  );
+
+  const response = await fetch(
+    `${API_URL}/api/tickets/${ticketId}?${query.toString()}`
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      "Unable to load ticket"
+    );
   }
 
   return response.json();
