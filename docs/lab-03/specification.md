@@ -1,7 +1,5 @@
 # Lab 3 Sprint Engineering Specification
 
-> Extends `docs/lab-02/specification.md`. Companion contracts: [`ui-spec.md`](ui-spec.md), [`api-spec.md`](api-spec.md), [`tests.md`](tests.md).
-
 ## 1. Sprint Goal
 
 Replace the temporary Development Requester selector with real email/password authentication and server-enforced role-based authorization for three roles (Requester, IT Staff, Administrator). Deliver the first operational IT Staff workflow (shared Ticket Queue, Ticket Detail, ownership, IT Priority, status workflow, Public Comments, Internal Notes) and a minimalist Administrator User Management screen, while every Lab 2 Requester function keeps working under the authenticated identity.
