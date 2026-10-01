@@ -1,7 +1,5 @@
 # Lab 3 UI Specification
 
-> Extends `docs/lab-02/ui-spec.md`. All Zen Green tokens, typography, spacing, form conventions, button hierarchy, breakpoints, and accessibility rules from Lab 2 remain in force; only additions and changes are listed here.
-
 ## 1. Design Additions (Zen Green)
 
 ### 1.1 Badges (always carry a text label; color is never the only signal)

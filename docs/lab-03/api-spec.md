@@ -1,7 +1,5 @@
 # Lab 3 REST API Specification
 
-> Implements `specification.md` (FR/BR/AC IDs referenced). Extends `docs/lab-02/api-spec.md`; only changes and additions are detailed, unchanged Lab 2 payload shapes are noted.
-
 ## 1. General Conventions
 
 - **Base path:** `/api`. JSON bodies (`application/json`), except attachment upload (`multipart/form-data`). Timestamps are ISO 8601 UTC.

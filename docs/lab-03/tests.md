@@ -1,7 +1,5 @@
 # Lab 3 Test Plan and Traceability
 
-> Written before implementation (Test DD / TDD) from `specification.md`, `api-spec.md`, and `ui-spec.md`. **Final Status** is `Planned` until the test runs; it is updated to `Pass` only from real output on `main`.
-
 ## 1. Test Strategy
 
 | Layer | Tooling | Focus |
