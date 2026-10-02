@@ -15,15 +15,29 @@ model Category {
   tickets Ticket[]
 }
 
-model RequesterUser {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum UserRole {
+  REQUESTER
+  IT_STAFF
+  ADMIN
+}
 
-  tickets Ticket[]
+model User {
+  id                 Int      @id @default(autoincrement())
+  name               String
+  email              String   @unique
+  passwordHash       String
+  role               UserRole @default(REQUESTER)
+  isActive           Boolean  @default(true)
+  mustChangePassword Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  requestedTickets Ticket[]             @relation("TicketRequester")
+  ownedTickets     Ticket[]             @relation("TicketOwner")
+  comments         TicketComment[]
+  internalNotes    TicketInternalNote[]
+
+  @@index([role, isActive])
 }
 
 enum RequestedPriority {
@@ -34,6 +48,13 @@ enum RequestedPriority {
 
 enum TicketStatus {
   NEW
+  OPEN
+  IN_PROGRESS
+  WAITING_FOR_REQUESTER
+  RESOLVED
+  CLOSED
+  REOPENED
+  CANCELLED
 }
 
 model RelatedSystem {
@@ -54,19 +75,28 @@ model Ticket {
   summary           String            @db.VarChar(120)
   description       String
   requestedPriority RequestedPriority
+  itPriority        RequestedPriority
   currentStatus     TicketStatus      @default(NEW)
+  ownerId           Int?
+  requesterMarkedResolved Boolean     @default(false)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
-  requester     RequesterUser @relation(fields: [requesterId], references: [id])
+  requester     User          @relation("TicketRequester", fields: [requesterId], references: [id])
+  owner         User?         @relation("TicketOwner", fields: [ownerId], references: [id])
   category      Category      @relation(fields: [categoryId], references: [id])
   relatedSystem RelatedSystem @relation(fields: [relatedSystemId], references: [id])
 
-  attachments Attachment[]
+  attachments   Attachment[]
+  comments      TicketComment[]
+  internalNotes TicketInternalNote[]
 
   @@index([requesterId, createdAt])
   @@index([requesterId, currentStatus])
   @@index([requesterId, categoryId])
+  @@index([ownerId])
+  @@index([currentStatus])
+  @@index([itPriority])
 }
 
 model Attachment {
@@ -84,4 +114,30 @@ model Attachment {
   ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@index([ticketId, isRemoved])
+}
+
+model TicketComment {
+  id        Int      @id @default(autoincrement())
+  ticketId  Int
+  authorId  Int
+  body      String
+  createdAt DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author User   @relation(fields: [authorId], references: [id])
+
+  @@index([ticketId, createdAt])
+}
+
+model TicketInternalNote {
+  id        Int      @id @default(autoincrement())
+  ticketId  Int
+  authorId  Int
+  body      String
+  createdAt DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author User   @relation(fields: [authorId], references: [id])
+
+  @@index([ticketId, createdAt])
 }
