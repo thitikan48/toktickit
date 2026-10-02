@@ -3,15 +3,28 @@ import cors from "cors";
 import { getPrisma } from "./prisma.js";
 import { attachmentRouter } from "./attachments.js";
 import { generateTicketNumber } from "./ticket-number.js";
+import {
+  authRouter,
+  loadUser,
+  requireAuth,
+  sessionMiddleware,
+} from "./auth.js";
 
 void getPrisma;
 
 export const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin:
+      process.env.CLIENT_ORIGIN ??
+      "http://localhost:5173",
+    credentials: true,
+  })
+);
 app.use(express.json());
-
-app.use("/api", attachmentRouter);
+app.use(sessionMiddleware);
+app.use(loadUser);
 
 app.get("/api/health", (_req: Request, res: Response) => {
   res.status(200).json({
@@ -19,6 +32,14 @@ app.get("/api/health", (_req: Request, res: Response) => {
     service: "TokTickIT API",
   });
 });
+
+// Login, logout, current user, and change password.
+app.use("/api/auth", authRouter);
+
+// Every other endpoint requires a logged-in user.
+app.use("/api", requireAuth);
+
+app.use("/api", attachmentRouter);
 
 app.get("/api/categories", async (_req: Request, res: Response) => {
   try {
@@ -41,40 +62,6 @@ app.get("/api/categories", async (_req: Request, res: Response) => {
     });
   }
 });
-
-app.get(
-  "/api/development-requesters",
-  async (_req: Request, res: Response) => {
-    try {
-      const prisma = getPrisma();
-
-      const requesters =
-        await prisma.requesterUser.findMany({
-          where: {
-            isActive: true,
-          },
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-          orderBy: {
-            id: "asc",
-          },
-        });
-
-      res.status(200).json(requesters);
-    } catch {
-      res.status(500).json({
-        error: {
-          code: "SERVER_ERROR",
-          message:
-            "Unable to load Development Requesters.",
-        },
-      });
-    }
-  }
-);
 
 app.get(
   "/api/related-systems",
@@ -118,9 +105,7 @@ app.get(
     try {
       const prisma = getPrisma();
 
-      const requesterId = Number(
-        req.query.requesterId
-      );
+      const requesterId = req.user!.id;
 
       const search =
         typeof req.query.search === "string"
@@ -163,33 +148,7 @@ app.get(
             )
           : 10;
 
-      if (!Number.isInteger(requesterId)) {
-        return res.status(400).json({
-          error: {
-            code: "VALIDATION_ERROR",
-            message:
-              "Requester is required.",
-          },
-        });
-      }
 
-      const requester =
-        await prisma.requesterUser.findFirst({
-          where: {
-            id: requesterId,
-            isActive: true,
-          },
-        });
-
-      if (!requester) {
-        return res.status(404).json({
-          error: {
-            code: "NOT_FOUND",
-            message:
-              "Development Requester was not found.",
-          },
-        });
-      }
 
       const where = {
         requesterId,
@@ -310,40 +269,20 @@ app.get(
         req.params.id
       );
 
-      const requesterId = Number(
-        req.query.requesterId
-      );
+      const requesterId = req.user!.id;
 
       if (
-        !Number.isInteger(ticketId) ||
-        !Number.isInteger(requesterId)
+        !Number.isInteger(ticketId)
       ) {
         return res.status(400).json({
           error: {
             code: "VALIDATION_ERROR",
             message:
-              "Ticket ID and Requester are required.",
+              "Ticket ID is required.",
           },
         });
       }
 
-      const requester =
-        await prisma.requesterUser.findFirst({
-          where: {
-            id: requesterId,
-            isActive: true,
-          },
-        });
-
-      if (!requester) {
-        return res.status(404).json({
-          error: {
-            code: "NOT_FOUND",
-            message:
-              "Development Requester was not found.",
-          },
-        });
-      }
 
       const ticket =
         await prisma.ticket.findUnique({
@@ -415,8 +354,9 @@ app.post(
     try {
       const prisma = getPrisma();
 
+      const requesterId = req.user!.id;
+
       const {
-        requesterId,
         categoryId,
         relatedSystemId,
         summary,
@@ -468,14 +408,6 @@ app.post(
           "Requested Priority must be LOW, MEDIUM, or HIGH.";
       }
 
-      if (
-        !Number.isInteger(
-          requesterId
-        )
-      ) {
-        fields.requesterId =
-          "Requester is required.";
-      }
 
       if (
         !Number.isInteger(
@@ -510,23 +442,6 @@ app.post(
         });
       }
 
-      const requester =
-        await prisma.requesterUser.findFirst({
-          where: {
-            id: requesterId,
-            isActive: true,
-          },
-        });
-
-      if (!requester) {
-        return res.status(404).json({
-          error: {
-            code: "NOT_FOUND",
-            message:
-              "Development Requester was not found.",
-          },
-        });
-      }
 
       const category =
         await prisma.category.findUnique({
@@ -595,6 +510,7 @@ app.post(
             description:
               trimmedDescription,
             requestedPriority,
+            itPriority: requestedPriority,
           },
         });
 

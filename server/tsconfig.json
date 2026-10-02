@@ -9,5 +9,6 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["src", "prisma", "tests"]
+  "include": ["src", "prisma", "tests"],
+  "exclude": ["tests/lab-01", "tests/lab-02"]
 }
