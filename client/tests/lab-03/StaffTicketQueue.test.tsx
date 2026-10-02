@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import App from "../../src/App.js";
 import StaffTicketQueue from "../../src/StaffTicketQueue.js";
 import * as api from "../../src/api.js";
 
@@ -244,5 +245,100 @@ describe("Ticket Queue", () => {
 
     await screen.findByRole("table");
     expect(spy).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("Ticket Queue filters are kept", () => {
+  it("starts with the filters it is given and reports every change", async () => {
+    const spy = vi.spyOn(api, "getStaffTickets").mockResolvedValue(page([item()]));
+    const onFiltersChange = vi.fn();
+
+    render(
+      <StaffTicketQueue
+        currentUserId={6}
+        onOpenTicket={() => {}}
+        onFiltersChange={onFiltersChange}
+        initialFilters={{
+          search: "printer",
+          status: "OPEN",
+          itPriority: "HIGH",
+          categoryId: "2",
+          owner: "unassigned",
+          sortChoice: "oldest",
+          page: 2,
+        }}
+      />
+    );
+
+    await screen.findByRole("table");
+
+    expect(screen.getByLabelText("Search")).toHaveValue("printer");
+    expect(screen.getByLabelText("Status")).toHaveValue("OPEN");
+    expect(screen.getByLabelText("Sort")).toHaveValue("oldest");
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        search: "printer",
+        status: "OPEN",
+        itPriority: "HIGH",
+        categoryId: 2,
+        ownerId: "unassigned",
+        sort: "createdAt",
+        direction: "asc",
+        page: 2,
+      })
+    );
+
+    await userEvent.selectOptions(screen.getByLabelText("Status"), "CLOSED");
+
+    await waitFor(() =>
+      expect(onFiltersChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({ status: "CLOSED", page: 1 })
+      )
+    );
+  });
+
+  it("is still filtered after opening a ticket and coming back", async () => {
+    vi.spyOn(api, "getCurrentUser").mockResolvedValue({
+      id: 6,
+      name: "Priya Nair",
+      email: "priya.nair@example.com",
+      role: "IT_STAFF",
+      mustChangePassword: false,
+    });
+    vi.spyOn(api, "getStaffTickets").mockResolvedValue(page([item()]));
+    vi.spyOn(api, "getStaffTicket").mockResolvedValue({
+      id: 1,
+      ticketNumber: "TKT-2026-900002",
+      summary: "Printer shows paper jam",
+      description: "The printer reports a paper jam.",
+      requestedPriority: "LOW",
+      itPriority: "HIGH",
+      currentStatus: "OPEN",
+      requesterMarkedResolved: false,
+      createdAt: "2026-10-01T10:00:00.000Z",
+      updatedAt: "2026-10-02T10:00:00.000Z",
+      requester: { id: 1, name: "Jennifer Anderson", email: "jennifer.anderson@example.com" },
+      category: { id: 2, name: "Hardware" },
+      relatedSystem: { id: 6, name: "Printer" },
+      owner: null,
+    });
+    vi.spyOn(api, "getAttachments").mockResolvedValue([]);
+    vi.spyOn(api, "getComments").mockResolvedValue([]);
+    vi.spyOn(api, "getInternalNotes").mockResolvedValue([]);
+
+    render(<App />);
+
+    await screen.findByRole("table");
+    await userEvent.selectOptions(screen.getByLabelText("Status"), "OPEN");
+    await userEvent.selectOptions(screen.getByLabelText("IT Priority"), "HIGH");
+
+    await userEvent.click(
+      within(screen.getByRole("table")).getByRole("button", { name: "Open" })
+    );
+    await userEvent.click(await screen.findByRole("button", { name: "← Back to Queue" }));
+
+    await screen.findByRole("table");
+    expect(screen.getByLabelText("Status")).toHaveValue("OPEN");
+    expect(screen.getByLabelText("IT Priority")).toHaveValue("HIGH");
   });
 });

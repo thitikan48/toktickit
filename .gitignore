@@ -15,3 +15,6 @@ server/prisma/*.db
 # uploaded attachment files
 server/uploads/*
 !server/uploads/.gitkeep
+# Playwright output
+test-results/
+playwright-report/

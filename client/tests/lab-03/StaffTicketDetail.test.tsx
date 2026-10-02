@@ -373,6 +373,31 @@ describe("Status", () => {
     expect(updateSpy).not.toHaveBeenCalled();
   });
 
+  it("moves the focus into the confirmation, and Escape closes it without saving", async () => {
+    vi.spyOn(api, "getStaffTicket").mockResolvedValue(ticket({ currentStatus: "OPEN" }));
+    const statusSpy = vi.spyOn(api, "changeStatus").mockResolvedValue();
+
+    renderDetail();
+
+    await userEvent.selectOptions(await screen.findByLabelText("Status"), "RESOLVED");
+    await userEvent.click(save());
+
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
+
+    // Tab stays inside the dialog.
+    await userEvent.tab();
+    await userEvent.tab();
+    await userEvent.tab();
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
+
+    await userEvent.keyboard("{Escape}");
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(statusSpy).not.toHaveBeenCalled();
+    expect(save()).toHaveFocus();
+  });
+
   it("sends the confirmation when the user confirms", async () => {
     vi.spyOn(api, "getStaffTicket").mockResolvedValue(ticket({ currentStatus: "RESOLVED" }));
     const statusSpy = vi.spyOn(api, "changeStatus").mockResolvedValue();
@@ -427,6 +452,46 @@ describe("Status", () => {
 
     expect(await screen.findByText(/its status cannot be changed/i)).toBeInTheDocument();
     expect(screen.queryByLabelText("Status")).toBeNull();
+  });
+});
+
+describe("Styling", () => {
+  it("keeps the ticket information read-only and the handling controls editable", async () => {
+    vi.spyOn(api, "getStaffTicket").mockResolvedValue(ticket());
+
+    renderDetail();
+
+    const information = (await screen.findByText("Ticket Information")).closest(".card") as HTMLElement;
+    const handling = screen.getByText("Ticket Handling").closest(".card") as HTMLElement;
+
+    expect(within(information).queryAllByRole("textbox")).toHaveLength(0);
+    expect(within(information).queryAllByRole("combobox")).toHaveLength(0);
+    expect(within(handling).getAllByRole("combobox").length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("styles Internal Notes as a warning panel that Public Comments do not use", async () => {
+    vi.spyOn(api, "getStaffTicket").mockResolvedValue(ticket());
+
+    renderDetail();
+
+    const publicPanel = (await screen.findByRole("heading", { name: "Public Comments" }))
+      .closest("section") as HTMLElement;
+    const internalPanel = screen
+      .getByRole("heading", { name: /Internal Notes/ })
+      .closest("section") as HTMLElement;
+
+    expect(internalPanel).toHaveStyle({ backgroundColor: "#FFFAEB" });
+    expect(publicPanel).not.toHaveStyle({ backgroundColor: "#FFFAEB" });
+  });
+
+  it("uses the primary style for Save Changes and a secondary style for Discard", async () => {
+    vi.spyOn(api, "getStaffTicket").mockResolvedValue(ticket());
+
+    renderDetail();
+
+    await screen.findByLabelText("Owner");
+    expect(save()).toHaveClass("btn-success");
+    expect(screen.getByRole("button", { name: "Discard" })).toHaveClass("btn-outline-secondary");
   });
 });
 

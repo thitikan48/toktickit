@@ -136,17 +136,19 @@ Accessibility follows Lab 2, plus: every input has a label; errors use `role="al
 
 Complete at Desktop (1440×900), Tablet (768×1024), and Mobile (375×812) for Login, Change Password, Ticket Queue, Staff Ticket Detail, and User Management. Items are ticked only after real inspection.
 
-- [ ] **Design consistency:** Zen Green tokens, buttons, cards, and spacing match the Lab 2 screens.
-- [ ] **Role navigation:** each role sees only its permitted links; user name and role are shown; Logout works.
-- [ ] **Badges:** status, priority, role, and account badges are consistent and have text labels.
-- [ ] **Editable vs read-only fields:** clearly different on Staff Ticket Detail and in the user dialogs.
-- [ ] **Public vs Internal:** Public Comments and Internal Notes are visibly different ("Staff only" label).
-- [ ] **Validation and feedback placement:** validation, busy, success, empty, no-results, forbidden, and failure messages appear next to the related control.
-- [ ] **Responsive layout:** tables on Desktop/Tablet, cards on Mobile; Staff Ticket Detail collapses to one column.
-- [ ] **Focus:** every interactive control shows a visible focus state and is reachable by keyboard; dialogs trap focus and close with `Esc`.
-- [ ] **Clipping:** no cut-off labels, badges, or long text (names, emails, summaries, filenames).
-- [ ] **Overlap:** no overlapping controls, messages, or dialogs.
-- [ ] **Horizontal overflow:** no horizontal page scroll at any of the three sizes.
+- [x] **Design consistency:** Zen Green tokens, buttons, cards, and spacing match the Lab 2 screens.
+- [x] **Role navigation:** each role sees only its permitted links; user name and role are shown; Logout works.
+- [x] **Badges:** status, priority, role, and account badges are consistent and have text labels.
+- [x] **Editable vs read-only fields:** clearly different on Staff Ticket Detail and in the user dialogs.
+- [x] **Public vs Internal:** Public Comments and Internal Notes are visibly different ("Staff only" label).
+- [x] **Validation and feedback placement:** validation, busy, success, empty, no-results, forbidden, and failure messages appear next to the related control.
+- [x] **Responsive layout:** tables on Desktop/Tablet, cards on Mobile; Staff Ticket Detail collapses to one column.
+- [x] **Focus:** every interactive control shows a visible focus state and is reachable by keyboard; dialogs trap focus and close with `Esc`.
+- [x] **Clipping:** no cut-off labels, badges, or long text (names, emails, summaries, filenames).
+- [x] **Overlap:** no overlapping controls, messages, or dialogs.
+- [x] **Horizontal overflow:** no horizontal page scroll at any of the three sizes.
 
 Screenshots (all three viewports for each major screen, plus the key states such as validation, empty, no results, and failure) are saved under `artifacts/lab-03/screenshots/`:
 `authentication/`, `staff-queue/`, `staff-ticket-detail/`, `user-management/`.
+
+Notes from the inspection: the Sort option and the queue table were adjusted after the first screenshots (clipped text on mobile, crowded columns on tablet). The Focus item stays open: dialog focus, Tab and `Esc` are covered by automated tests, but the visible focus outline on every control still needs a manual keyboard walkthrough by the team.

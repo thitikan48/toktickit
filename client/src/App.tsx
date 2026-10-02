@@ -13,7 +13,10 @@ import CreateTicket from "./CreateTicket.js";
 import Login from "./Login.js";
 import MyTickets from "./MyTickets.js";
 import StaffTicketDetail from "./StaffTicketDetail.js";
-import StaffTicketQueue from "./StaffTicketQueue.js";
+import StaffTicketQueue, {
+  EMPTY_FILTERS,
+  QueueFilters,
+} from "./StaffTicketQueue.js";
 import UserManagement from "./UserManagement.js";
 import TicketDetail from "./TicketDetail.js";
 
@@ -65,6 +68,9 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>("home");
   const [selectedTicketId, setSelectedTicketId] =
     useState<number | null>(null);
+  // The queue's search and filters survive opening a ticket and coming back.
+  const [queueFilters, setQueueFilters] =
+    useState<QueueFilters>(EMPTY_FILTERS);
 
   function showHome(current: AuthUser) {
     setSelectedTicketId(null);
@@ -115,6 +121,7 @@ export default function App() {
     } finally {
       setUser(null);
       setNotice("");
+      setQueueFilters(EMPTY_FILTERS);
     }
   }
 
@@ -315,6 +322,8 @@ export default function App() {
                   key={user.id}
                   currentUserId={user.id}
                   onOpenTicket={handleOpenStaffTicket}
+                  initialFilters={queueFilters}
+                  onFiltersChange={setQueueFilters}
                 />
               )}
 

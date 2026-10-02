@@ -1,6 +1,7 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import { getPrisma } from "./prisma.js";
+import { logServerError } from "./log.js";
 import { attachmentRouter } from "./attachments.js";
 import { commentRouter } from "./comments.js";
 import { staffRouter } from "./staff.js";
@@ -63,7 +64,8 @@ app.get("/api/categories", async (_req: Request, res: Response) => {
     });
 
     res.status(200).json(categories);
-  } catch {
+  } catch (error) {
+      logServerError(error);
     res.status(500).json({
       error: "Unable to load categories",
     });
@@ -91,7 +93,8 @@ app.get(
         });
 
       return res.status(200).json(relatedSystems);
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res.status(500).json({
         error: {
           code: "SERVER_ERROR",
@@ -259,7 +262,8 @@ app.get(
         totalItems,
         totalPages,
       });
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res.status(500).json({
         error: {
           code: "SERVER_ERROR",
@@ -348,7 +352,8 @@ app.get(
       return res
         .status(200)
         .json(ticket);
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res.status(500).json({
         error: {
           code: "SERVER_ERROR",
@@ -533,7 +538,8 @@ app.post(
       return res
         .status(201)
         .json(ticket);
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res.status(500).json({
         error: {
           code: "SERVER_ERROR",

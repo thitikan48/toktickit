@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Assignee,
   Category,
@@ -11,7 +11,7 @@ import {
 import PriorityBadge from "./PriorityBadge.js";
 import StatusBadge, { STATUS_OPTIONS } from "./StatusBadge.js";
 
-type SortChoice =
+export type SortChoice =
   | "default"
   | "newest"
   | "oldest"
@@ -29,9 +29,33 @@ const SORTS: Record<
   priority: { sort: "itPriority", direction: "desc" },
 };
 
+export interface QueueFilters {
+  search: string;
+  status: string;
+  itPriority: string;
+  categoryId: string;
+  owner: string;
+  sortChoice: SortChoice;
+  page: number;
+}
+
+export const EMPTY_FILTERS: QueueFilters = {
+  search: "",
+  status: "",
+  itPriority: "",
+  categoryId: "",
+  owner: "",
+  sortChoice: "default",
+  page: 1,
+};
+
 interface StaffTicketQueueProps {
   currentUserId: number;
   onOpenTicket: (ticket: StaffTicketListItem) => void;
+  /** Filters to start with (kept by the app when a ticket is opened). */
+  initialFilters?: QueueFilters;
+  /** Called whenever the filters change, so the app can remember them. */
+  onFiltersChange?: (filters: QueueFilters) => void;
 }
 
 function formatDate(value: string) {
@@ -41,19 +65,23 @@ function formatDate(value: string) {
 export default function StaffTicketQueue({
   currentUserId,
   onOpenTicket,
+  initialFilters = EMPTY_FILTERS,
+  onFiltersChange,
 }: StaffTicketQueueProps) {
   const [tickets, setTickets] = useState<StaffTicketListItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [assignees, setAssignees] = useState<Assignee[]>([]);
 
-  const [search, setSearch] = useState("");
-  const [appliedSearch, setAppliedSearch] = useState("");
-  const [status, setStatus] = useState("");
-  const [itPriority, setItPriority] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [owner, setOwner] = useState("");
-  const [sortChoice, setSortChoice] = useState<SortChoice>("default");
-  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState(initialFilters.search);
+  const [appliedSearch, setAppliedSearch] = useState(initialFilters.search);
+  const [status, setStatus] = useState(initialFilters.status);
+  const [itPriority, setItPriority] = useState(initialFilters.itPriority);
+  const [categoryId, setCategoryId] = useState(initialFilters.categoryId);
+  const [owner, setOwner] = useState(initialFilters.owner);
+  const [sortChoice, setSortChoice] = useState<SortChoice>(
+    initialFilters.sortChoice
+  );
+  const [page, setPage] = useState(initialFilters.page);
 
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -80,15 +108,35 @@ export default function StaffTicketQueue({
     getAssignees().then(setAssignees).catch(() => undefined);
   }, []);
 
-  // Search runs shortly after the user stops typing.
+  // Search runs shortly after the user stops typing. The first run keeps the
+  // page the user came back to.
+  const firstSearch = useRef(true);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setAppliedSearch(search.trim());
-      setPage(1);
+
+      if (firstSearch.current) {
+        firstSearch.current = false;
+      } else {
+        setPage(1);
+      }
     }, 300);
 
     return () => clearTimeout(timer);
   }, [search]);
+
+  useEffect(() => {
+    onFiltersChange?.({
+      search: appliedSearch,
+      status,
+      itPriority,
+      categoryId,
+      owner,
+      sortChoice,
+      page,
+    });
+  }, [appliedSearch, status, itPriority, categoryId, owner, sortChoice, page]);
 
   useEffect(() => {
     let cancelled = false;
@@ -267,7 +315,7 @@ export default function StaffTicketQueue({
                   change(setSortChoice)(event.target.value as SortChoice)
                 }
               >
-                <option value="default">Default (priority, oldest first)</option>
+                <option value="default">Default</option>
                 <option value="newest">Newest first</option>
                 <option value="oldest">Oldest first</option>
                 <option value="updated">Last updated</option>
@@ -340,11 +388,15 @@ export default function StaffTicketQueue({
                   <tr>
                     <th scope="col">Ticket No.</th>
                     <th scope="col">Summary</th>
-                    <th scope="col">Requester</th>
+                    <th scope="col" className="d-none d-lg-table-cell">
+                      Requester
+                    </th>
                     <th scope="col">IT Priority</th>
                     <th scope="col">Status</th>
                     <th scope="col">Owner</th>
-                    <th scope="col">Last Updated</th>
+                    <th scope="col" className="d-none d-lg-table-cell">
+                      Last Updated
+                    </th>
                     <th scope="col">
                       <span className="visually-hidden">Open</span>
                     </th>
@@ -353,9 +405,15 @@ export default function StaffTicketQueue({
                 <tbody>
                   {tickets.map((ticket) => (
                     <tr key={ticket.id}>
-                      <td className="fw-semibold">{ticket.ticketNumber}</td>
-                      <td className="text-break">
+                      <td className="fw-semibold text-nowrap">
+                        {ticket.ticketNumber}
+                      </td>
+                      <td>
                         {ticket.summary}
+                        {/* On tablets the requester sits under the summary. */}
+                        <div className="d-lg-none text-muted small">
+                          {ticket.requester.name}
+                        </div>
                         {ticket.requesterMarkedResolved && (
                           <div>
                             <span
@@ -370,7 +428,9 @@ export default function StaffTicketQueue({
                           </div>
                         )}
                       </td>
-                      <td>{ticket.requester.name}</td>
+                      <td className="d-none d-lg-table-cell">
+                        {ticket.requester.name}
+                      </td>
                       <td>
                         <PriorityBadge priority={ticket.itPriority} />
                       </td>
@@ -378,7 +438,9 @@ export default function StaffTicketQueue({
                         <StatusBadge status={ticket.currentStatus} />
                       </td>
                       <td>{ownerName(ticket)}</td>
-                      <td>{formatDate(ticket.updatedAt)}</td>
+                      <td className="d-none d-lg-table-cell">
+                        {formatDate(ticket.updatedAt)}
+                      </td>
                       <td>
                         <button
                           type="button"
