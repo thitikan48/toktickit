@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   AuthUser,
+  StaffTicketListItem,
   TicketListItem,
   UserRole,
   getCurrentUser,
@@ -11,6 +12,8 @@ import ChangePassword from "./ChangePassword.js";
 import CreateTicket from "./CreateTicket.js";
 import Login from "./Login.js";
 import MyTickets from "./MyTickets.js";
+import StaffTicketDetail from "./StaffTicketDetail.js";
+import StaffTicketQueue from "./StaffTicketQueue.js";
 import TicketDetail from "./TicketDetail.js";
 
 type Screen =
@@ -19,6 +22,7 @@ type Screen =
   | "detail"
   | "change-password"
   | "queue"
+  | "staff-detail"
   | "users";
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -118,6 +122,11 @@ export default function App() {
     setScreen("detail");
   }
 
+  function handleOpenStaffTicket(ticket: StaffTicketListItem) {
+    setSelectedTicketId(ticket.id);
+    setScreen("staff-detail");
+  }
+
   function go(next: Screen) {
     setSelectedTicketId(null);
     setScreen(next);
@@ -196,7 +205,9 @@ export default function App() {
                   const active =
                     screen === item.screen ||
                     (item.screen === "home" &&
-                      screen === "detail");
+                      screen === "detail") ||
+                    (item.screen === "queue" &&
+                      screen === "staff-detail");
 
                   return (
                     <button
@@ -296,27 +307,43 @@ export default function App() {
             </>
           )}
 
-          {user.role !== "REQUESTER" &&
-            (screen === "queue" || screen === "users") && (
-              <div className="container py-5" style={{ maxWidth: 1200 }}>
-                <section
-                  className="card shadow-sm p-4"
-                  style={{
-                    border: "1px solid #D6E0DA",
-                    borderRadius: 12,
-                  }}
-                >
-                  <h1 className="h4">
-                    {screen === "queue"
-                      ? "Ticket Queue"
-                      : "User Management"}
-                  </h1>
-                  <p className="text-muted mb-0">
-                    This screen is built in a later Lab 3 issue.
-                  </p>
-                </section>
-              </div>
-            )}
+          {user.role !== "REQUESTER" && (
+            <>
+              {screen === "queue" && (
+                <StaffTicketQueue
+                  key={user.id}
+                  currentUserId={user.id}
+                  onOpenTicket={handleOpenStaffTicket}
+                />
+              )}
+
+              {screen === "staff-detail" && selectedTicketId !== null && (
+                <StaffTicketDetail
+                  key={selectedTicketId}
+                  ticketId={selectedTicketId}
+                  currentUser={user}
+                  onBack={() => go("queue")}
+                />
+              )}
+
+              {screen === "users" && (
+                <div className="container py-5" style={{ maxWidth: 1200 }}>
+                  <section
+                    className="card shadow-sm p-4"
+                    style={{
+                      border: "1px solid #D6E0DA",
+                      borderRadius: 12,
+                    }}
+                  >
+                    <h1 className="h4">User Management</h1>
+                    <p className="text-muted mb-0">
+                      This screen is built in a later Lab 3 issue.
+                    </p>
+                  </section>
+                </div>
+              )}
+            </>
+          )}
         </>
       )}
     </main>

@@ -2,7 +2,9 @@ import { FormEvent, useEffect, useState } from "react";
 import {
   TicketComment,
   getComments,
+  getInternalNotes,
   postComment,
+  postInternalNote,
 } from "./api.js";
 
 const MAX_LENGTH = 2000;
@@ -13,13 +15,68 @@ const ROLE_LABELS = {
   ADMIN: "Administrator",
 } as const;
 
+/*
+ * requester: Public Comments seen by the Requester who owns the ticket
+ * staff:     the same Public Comments, seen by IT Staff
+ * internal:  Internal Notes, visible only to IT Staff and Administrators
+ */
+type Variant = "requester" | "staff" | "internal";
+
+const TEXT: Record<
+  Variant,
+  {
+    heading: string;
+    subtitle: string;
+    label: string;
+    button: string;
+    empty: string;
+    loadError: string;
+    postError: string;
+  }
+> = {
+  requester: {
+    heading: "Public Comments",
+    subtitle: "Visible to you and the IT team.",
+    label: "Add a comment",
+    button: "Post Public Comment",
+    empty: "No comments yet.",
+    loadError: "Unable to load comments.",
+    postError: "Unable to post the comment. Please try again.",
+  },
+  staff: {
+    heading: "Public Comments",
+    subtitle: "Visible to the Requester.",
+    label: "Add a comment",
+    button: "Post Public Comment",
+    empty: "No comments yet.",
+    loadError: "Unable to load comments.",
+    postError: "Unable to post the comment. Please try again.",
+  },
+  internal: {
+    heading: "Internal Notes",
+    subtitle: "Not visible to the Requester.",
+    label: "Add an internal note",
+    button: "Add Internal Note",
+    empty: "No internal notes yet.",
+    loadError: "Unable to load internal notes.",
+    postError: "Unable to add the note. Please try again.",
+  },
+};
+
 interface CommentSectionProps {
   ticketId: number;
+  variant?: Variant;
 }
 
 export default function CommentSection({
   ticketId,
+  variant = "requester",
 }: CommentSectionProps) {
+  const text_ = TEXT[variant];
+  const internal = variant === "internal";
+  const fetchEntries = internal ? getInternalNotes : getComments;
+  const sendEntry = internal ? postInternalNote : postComment;
+
   const [comments, setComments] = useState<TicketComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -33,7 +90,7 @@ export default function CommentSection({
     setLoadError(false);
 
     try {
-      setComments(await getComments(ticketId));
+      setComments(await fetchEntries(ticketId));
     } catch {
       setLoadError(true);
     } finally {
@@ -62,14 +119,12 @@ export default function CommentSection({
     setBusy(true);
 
     try {
-      const created = await postComment(ticketId, trimmed);
+      const created = await sendEntry(ticketId, trimmed);
       setComments((current) => [...current, created]);
       setText("");
     } catch {
       // The typed text is kept so it can be sent again.
-      setPostError(
-        "Unable to post the comment. Please try again."
-      );
+      setPostError(text_.postError);
     } finally {
       setBusy(false);
     }
@@ -78,14 +133,33 @@ export default function CommentSection({
   return (
     <section
       className="card shadow-sm mt-4"
-      aria-labelledby="comments-heading"
+      aria-labelledby={`${variant}-heading`}
+      style={
+        internal
+          ? {
+              backgroundColor: "#FFFAEB",
+              borderLeft: "4px solid #B54708",
+            }
+          : undefined
+      }
     >
       <div className="card-body p-4">
-        <h2 id="comments-heading" className="h5 mb-1">
-          Public Comments
+        <h2 id={`${variant}-heading`} className="h5 mb-1">
+          {text_.heading}
+          {internal && (
+            <span
+              className="badge ms-2"
+              style={{
+                backgroundColor: "#B54708",
+                color: "#FFFFFF",
+              }}
+            >
+              Staff only
+            </span>
+          )}
         </h2>
         <p className="text-muted small mb-4">
-          Visible to you and the IT team.
+          {text_.subtitle}
         </p>
 
         {loading && (
@@ -96,7 +170,7 @@ export default function CommentSection({
 
         {loadError && (
           <div className="alert alert-danger" role="alert">
-            Unable to load comments.{" "}
+            {text_.loadError}{" "}
             <button
               type="button"
               className="btn btn-link p-0 align-baseline"
@@ -108,7 +182,7 @@ export default function CommentSection({
         )}
 
         {!loading && !loadError && comments.length === 0 && (
-          <p className="text-muted">No comments yet.</p>
+          <p className="text-muted">{text_.empty}</p>
         )}
 
         {comments.length > 0 && (
@@ -147,13 +221,13 @@ export default function CommentSection({
           )}
 
           <label
-            htmlFor="comment-text"
+            htmlFor={`${variant}-text`}
             className="form-label fw-semibold"
           >
-            Add a comment
+            {text_.label}
           </label>
           <textarea
-            id="comment-text"
+            id={`${variant}-text`}
             rows={3}
             className={`form-control ${
               fieldError ? "is-invalid" : ""
@@ -177,7 +251,7 @@ export default function CommentSection({
               }}
               disabled={busy}
             >
-              {busy ? "Posting…" : "Post Public Comment"}
+              {busy ? "Posting…" : text_.button}
             </button>
           </div>
         </form>

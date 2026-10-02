@@ -1,5 +1,6 @@
 import { Request, Response, Router } from "express";
 import { getPrisma } from "./prisma.js";
+import { requireRole } from "./auth.js";
 
 const MAX_COMMENT_LENGTH = 2000;
 
@@ -201,6 +202,84 @@ commentRouter.post(
       });
 
       return res.status(200).json(updated);
+    } catch {
+      return res.status(500).json(SERVER_ERROR);
+    }
+  }
+);
+
+// Internal Notes are only for IT Staff and Administrators. A Requester is
+// rejected before anything is read, so no note content can leak.
+commentRouter.get(
+  "/tickets/:id/internal-notes",
+  requireRole("IT_STAFF", "ADMIN"),
+  async (req: Request, res: Response) => {
+    try {
+      const ticket = await findVisibleTicket(req);
+
+      if (!ticket) {
+        return res.status(404).json(NOT_FOUND);
+      }
+
+      const notes = await getPrisma().ticketInternalNote.findMany({
+        where: { ticketId: ticket.id },
+        include: { author },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      });
+
+      return res.status(200).json({ items: notes.map(toComment) });
+    } catch {
+      return res.status(500).json(SERVER_ERROR);
+    }
+  }
+);
+
+commentRouter.post(
+  "/tickets/:id/internal-notes",
+  requireRole("IT_STAFF", "ADMIN"),
+  async (req: Request, res: Response) => {
+    try {
+      const body =
+        typeof req.body?.body === "string"
+          ? req.body.body.trim()
+          : "";
+
+      if (body.length < 1 || body.length > MAX_COMMENT_LENGTH) {
+        return res.status(400).json(
+          errorBody(
+            "VALIDATION_ERROR",
+            "The request contains invalid or missing data.",
+            {
+              body: `Enter between 1 and ${MAX_COMMENT_LENGTH} characters.`,
+            }
+          )
+        );
+      }
+
+      const ticket = await findVisibleTicket(req);
+
+      if (!ticket) {
+        return res.status(404).json(NOT_FOUND);
+      }
+
+      const prisma = getPrisma();
+
+      const [note] = await prisma.$transaction([
+        prisma.ticketInternalNote.create({
+          data: {
+            ticketId: ticket.id,
+            authorId: req.user!.id,
+            body,
+          },
+          include: { author },
+        }),
+        prisma.ticket.update({
+          where: { id: ticket.id },
+          data: { updatedAt: new Date() },
+        }),
+      ]);
+
+      return res.status(201).json(toComment(note));
     } catch {
       return res.status(500).json(SERVER_ERROR);
     }
