@@ -624,3 +624,181 @@ export async function markAppearsResolved(
     );
   }
 }
+
+/*
+ * IT Staff: Ticket Queue, Ticket Detail, ownership, priority, status
+ */
+export interface StaffTicketListItem {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  requestedPriority: RequestedPriority;
+  itPriority: RequestedPriority;
+  currentStatus: TicketStatus;
+  requesterMarkedResolved: boolean;
+  createdAt: string;
+  updatedAt: string;
+  category: { id: number; name: string };
+  requester: { id: number; name: string };
+  owner: { id: number; name: string } | null;
+}
+
+export interface StaffTicketListResponse {
+  items: StaffTicketListItem[];
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+}
+
+export interface StaffTicketsParams {
+  search?: string;
+  status?: string;
+  itPriority?: string;
+  categoryId?: number;
+  /** A user id, or "unassigned". */
+  ownerId?: number | "unassigned";
+  sort?: "createdAt" | "updatedAt" | "itPriority";
+  direction?: "asc" | "desc";
+  page?: number;
+}
+
+export async function getStaffTickets(
+  params: StaffTicketsParams
+): Promise<StaffTicketListResponse> {
+  const query = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== "") {
+      query.set(key, String(value));
+    }
+  }
+
+  const response = await apiFetch(
+    `${API_URL}/api/staff/tickets?${query.toString()}`
+  );
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to load the ticket queue");
+  }
+
+  return response.json();
+}
+
+export interface StaffTicketDetail {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  description: string;
+  requestedPriority: RequestedPriority;
+  itPriority: RequestedPriority;
+  currentStatus: TicketStatus;
+  requesterMarkedResolved: boolean;
+  createdAt: string;
+  updatedAt: string;
+  requester: { id: number; name: string; email: string };
+  category: { id: number; name: string };
+  relatedSystem: { id: number; name: string };
+  owner: { id: number; name: string } | null;
+}
+
+export async function getStaffTicket(
+  ticketId: number
+): Promise<StaffTicketDetail> {
+  const response = await apiFetch(
+    `${API_URL}/api/staff/tickets/${ticketId}`
+  );
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to load the ticket");
+  }
+
+  return response.json();
+}
+
+export interface Assignee {
+  id: number;
+  name: string;
+  role: UserRole;
+}
+
+export async function getAssignees(): Promise<Assignee[]> {
+  const response = await apiFetch(`${API_URL}/api/staff/assignees`);
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to load the staff list");
+  }
+
+  return (await response.json()).items;
+}
+
+export async function updateTicket(
+  ticketId: number,
+  changes: { ownerId?: number | null; itPriority?: RequestedPriority }
+): Promise<void> {
+  const response = await apiFetch(
+    `${API_URL}/api/staff/tickets/${ticketId}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(changes),
+    }
+  );
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to save the change");
+  }
+}
+
+export async function changeStatus(
+  ticketId: number,
+  status: TicketStatus,
+  confirm: boolean
+): Promise<void> {
+  const response = await apiFetch(
+    `${API_URL}/api/staff/tickets/${ticketId}/status`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status, confirm }),
+    }
+  );
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to change the status");
+  }
+}
+
+export async function getInternalNotes(
+  ticketId: number
+): Promise<TicketComment[]> {
+  const response = await apiFetch(
+    `${API_URL}/api/tickets/${ticketId}/internal-notes`
+  );
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to load the notes");
+  }
+
+  return (await response.json()).items;
+}
+
+export async function postInternalNote(
+  ticketId: number,
+  body: string
+): Promise<TicketComment> {
+  const response = await apiFetch(
+    `${API_URL}/api/tickets/${ticketId}/internal-notes`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ body }),
+    }
+  );
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to add the note");
+  }
+
+  return response.json();
+}

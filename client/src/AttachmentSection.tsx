@@ -13,6 +13,8 @@ import {
 
 interface AttachmentSectionProps {
   ticketId: number;
+  /** IT Staff and Administrators can view and download, but not add or remove. */
+  readOnly?: boolean;
 }
 
 const MAX_FILE_SIZE = 5_242_880;
@@ -40,6 +42,7 @@ function formatFileSize(bytes: number) {
 
 export default function AttachmentSection({
   ticketId,
+  readOnly = false,
 }: AttachmentSectionProps) {
   const [
     attachments,
@@ -297,13 +300,16 @@ export default function AttachmentSection({
                 /5 active)
               </h2>
 
-              <p className="text-muted small mb-0">
-                Allowed: JPG, PNG,
-                WEBP, PDF • Max
-                5 MB per file
-              </p>
+              {!readOnly && (
+                <p className="text-muted small mb-0">
+                  Allowed: JPG, PNG,
+                  WEBP, PDF • Max
+                  5 MB per file
+                </p>
+              )}
             </div>
 
+            {!readOnly && (
             <div>
               <label
                 htmlFor="addAttachment"
@@ -342,6 +348,7 @@ export default function AttachmentSection({
                 }}
               />
             </div>
+            )}
           </div>
 
           {activeAttachments.length >=
@@ -430,17 +437,19 @@ export default function AttachmentSection({
                             Download
                           </a>
 
+                          {!readOnly && (
                           <button
-                            type="button"
-                            className="btn btn-outline-danger btn-sm"
-                            onClick={() =>
-                              openRemoveDialog(
-                                attachment
-                              )
-                            }
-                          >
-                            Remove
-                          </button>
+                              type="button"
+                              className="btn btn-outline-danger btn-sm"
+                              onClick={() =>
+                                openRemoveDialog(
+                                  attachment
+                                )
+                              }
+                            >
+                              Remove
+                            </button>
+                          )}
                         </div>
                       </div>
                     )

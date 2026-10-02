@@ -38,3 +38,54 @@ export function validateNewPassword(
 
   return null;
 }
+
+// ---- Ticket status workflow (docs/lab-03/specification.md, BR-13 and BR-14)
+
+export const TICKET_STATUSES = [
+  "NEW",
+  "OPEN",
+  "IN_PROGRESS",
+  "WAITING_FOR_REQUESTER",
+  "RESOLVED",
+  "CLOSED",
+  "REOPENED",
+  "CANCELLED",
+] as const;
+
+export type TicketStatusValue = (typeof TICKET_STATUSES)[number];
+
+const TRANSITIONS: Record<TicketStatusValue, TicketStatusValue[]> = {
+  NEW: ["OPEN", "IN_PROGRESS", "CANCELLED"],
+  OPEN: ["IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CANCELLED"],
+  IN_PROGRESS: ["OPEN", "WAITING_FOR_REQUESTER", "RESOLVED", "CANCELLED"],
+  WAITING_FOR_REQUESTER: ["OPEN", "IN_PROGRESS", "RESOLVED", "CANCELLED"],
+  RESOLVED: ["CLOSED", "REOPENED"],
+  CLOSED: ["REOPENED"],
+  REOPENED: ["IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CANCELLED"],
+  CANCELLED: [],
+};
+
+export function isTicketStatus(value: unknown): value is TicketStatusValue {
+  return (
+    typeof value === "string" &&
+    (TICKET_STATUSES as readonly string[]).includes(value)
+  );
+}
+
+export function allowedTransitions(
+  from: TicketStatusValue
+): TicketStatusValue[] {
+  return TRANSITIONS[from];
+}
+
+export function canTransition(
+  from: TicketStatusValue,
+  to: TicketStatusValue
+): boolean {
+  return TRANSITIONS[from].includes(to);
+}
+
+// Resolving, closing, or cancelling needs an explicit confirmation.
+export function needsConfirmation(to: TicketStatusValue): boolean {
+  return to === "RESOLVED" || to === "CLOSED" || to === "CANCELLED";
+}

@@ -233,3 +233,83 @@ describe("Ticket status", () => {
     expect(record.currentStatus).toBe("OPEN");
   });
 });
+
+describe("Internal Notes", () => {
+  const createdNoteIds: number[] = [];
+
+  afterAll(async () => {
+    await prisma.ticketInternalNote.deleteMany({ where: { id: { in: createdNoteIds } } });
+  });
+
+  it("lets IT Staff and Administrators read the notes of any ticket", async () => {
+    const res = await priya.get(`/api/tickets/${openTicket.id}/internal-notes`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.items[0]).toMatchObject({
+      body: "Sensor may need cleaning if it happens again.",
+      author: { name: "Priya Nair", role: "IT_STAFF" },
+    });
+
+    const admin = await loginAs("admin@example.com");
+    expect((await admin.get(`/api/tickets/${othersTicket.id}/internal-notes`)).status).toBe(200);
+  });
+
+  it("saves a note with the author set by the server and validates its length", async () => {
+    const res = await priya
+      .post(`/api/tickets/${openTicket.id}/internal-notes`)
+      .send({ body: "  Checked the printer logs.  ", authorId: 1 });
+
+    expect(res.status).toBe(201);
+    createdNoteIds.push(res.body.id);
+    expect(res.body.body).toBe("Checked the printer logs.");
+    expect(res.body.author).toMatchObject({ name: "Priya Nair", role: "IT_STAFF" });
+
+    for (const body of ["", "   ", "x".repeat(2001)]) {
+      const bad = await priya
+        .post(`/api/tickets/${openTicket.id}/internal-notes`)
+        .send({ body });
+      expect(bad.status).toBe(400);
+    }
+
+    const ok = await priya
+      .post(`/api/tickets/${openTicket.id}/internal-notes`)
+      .send({ body: "x".repeat(2000) });
+    expect(ok.status).toBe(201);
+    createdNoteIds.push(ok.body.id);
+
+    expect(
+      (await priya.post("/api/tickets/999999999/internal-notes").send({ body: "hi" })).status
+    ).toBe(404);
+  });
+
+  it("rejects a Requester with 403 and returns no note content", async () => {
+    const read = await jennifer.get(`/api/tickets/${openTicket.id}/internal-notes`);
+    expect(read.status).toBe(403);
+    expect(JSON.stringify(read.body)).not.toContain("Sensor may need cleaning");
+
+    const write = await jennifer
+      .post(`/api/tickets/${openTicket.id}/internal-notes`)
+      .send({ body: "I should not be able to write this" });
+    expect(write.status).toBe(403);
+    expect(
+      await prisma.ticketInternalNote.count({
+        where: { body: "I should not be able to write this" },
+      })
+    ).toBe(0);
+
+    // Also for another Requester's ticket: still 403, not 404.
+    expect((await jennifer.get(`/api/tickets/${othersTicket.id}/internal-notes`)).status).toBe(403);
+  });
+
+  it("does not show a note in the Public Comments", async () => {
+    const publicComments = await jennifer.get(`/api/tickets/${openTicket.id}/comments`);
+
+    expect(JSON.stringify(publicComments.body)).not.toContain("Checked the printer logs.");
+  });
+
+  it("requires a session", async () => {
+    expect(
+      (await request(app).get(`/api/tickets/${openTicket.id}/internal-notes`)).status
+    ).toBe(401);
+  });
+});

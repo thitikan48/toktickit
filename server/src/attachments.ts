@@ -124,9 +124,11 @@ attachmentRouter.get(
           );
       }
 
+      // IT Staff and Administrators may read any ticket's files.
       if (
+        req.user!.role === "REQUESTER" &&
         ticket.requesterId !==
-        requesterId
+          requesterId
       ) {
         return res
           .status(404)
@@ -459,9 +461,10 @@ attachmentRouter.get(
       }
 
       if (
+        req.user!.role === "REQUESTER" &&
         attachment.ticket
           .requesterId !==
-        requesterId
+          requesterId
       ) {
         return res
           .status(404)

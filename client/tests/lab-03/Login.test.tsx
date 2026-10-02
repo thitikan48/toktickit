@@ -41,6 +41,14 @@ beforeEach(() => {
     totalPages: 0,
   });
   vi.spyOn(api, "getCategories").mockResolvedValue([]);
+  vi.spyOn(api, "getAssignees").mockResolvedValue([]);
+  vi.spyOn(api, "getStaffTickets").mockResolvedValue({
+    items: [],
+    page: 1,
+    pageSize: 10,
+    totalItems: 0,
+    totalPages: 0,
+  });
 });
 
 async function fillAndSubmit(email: string, password: string) {
