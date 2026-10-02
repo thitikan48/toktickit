@@ -15,7 +15,6 @@ import {
 } from "./api.js";
 
 interface CreateTicketProps {
-  requesterId: number;
   requesterName: string;
 }
 
@@ -62,7 +61,6 @@ function formatFileSize(
 }
 
 export default function CreateTicket({
-  requesterId,
   requesterName,
 }: CreateTicketProps) {
   const [
@@ -336,8 +334,6 @@ export default function CreateTicket({
     try {
       const ticket =
         await createTicket({
-          requesterId,
-
           categoryId:
             Number(categoryId),
 
@@ -370,7 +366,6 @@ export default function CreateTicket({
         try {
           await uploadAttachment(
             ticket.id,
-            requesterId,
             file
           );
         } catch {

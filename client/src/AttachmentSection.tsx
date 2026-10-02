@@ -13,7 +13,6 @@ import {
 
 interface AttachmentSectionProps {
   ticketId: number;
-  requesterId: number;
 }
 
 const MAX_FILE_SIZE = 5_242_880;
@@ -41,7 +40,6 @@ function formatFileSize(bytes: number) {
 
 export default function AttachmentSection({
   ticketId,
-  requesterId,
 }: AttachmentSectionProps) {
   const [
     attachments,
@@ -114,8 +112,7 @@ export default function AttachmentSection({
     try {
       const data =
         await getAttachments(
-          ticketId,
-          requesterId
+          ticketId
         );
 
       setAttachments(data);
@@ -130,7 +127,7 @@ export default function AttachmentSection({
 
   useEffect(() => {
     void loadAttachments();
-  }, [ticketId, requesterId]);
+  }, [ticketId]);
 
   async function handleFileChange(
     fileList: FileList | null
@@ -180,7 +177,6 @@ export default function AttachmentSection({
       const created =
         await uploadAttachment(
           ticketId,
-          requesterId,
           file
         );
 
@@ -254,7 +250,6 @@ export default function AttachmentSection({
       const updated =
         await removeAttachment(
           attachmentToRemove.id,
-          requesterId,
           trimmedReason
         );
 
@@ -427,8 +422,7 @@ export default function AttachmentSection({
                           <a
                             className="btn btn-outline-success btn-sm"
                             href={getAttachmentDownloadUrl(
-                              attachment.id,
-                              requesterId
+                              attachment.id
                             )}
                             target="_blank"
                             rel="noreferrer"

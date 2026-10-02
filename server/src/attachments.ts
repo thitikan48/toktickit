@@ -96,9 +96,7 @@ attachmentRouter.get(
         Number(req.params.id);
 
       const requesterId =
-        Number(
-          req.query.requesterId
-        );
+        req.user!.id;
 
       if (
         !Number.isInteger(ticketId) ||
@@ -255,9 +253,7 @@ attachmentRouter.post(
         Number(req.params.id);
 
       const requesterId =
-        Number(
-          req.body.requesterId
-        );
+        req.user!.id;
 
       if (
         !Number.isInteger(ticketId) ||
@@ -422,9 +418,7 @@ attachmentRouter.get(
         Number(req.params.id);
 
       const requesterId =
-        Number(
-          req.query.requesterId
-        );
+        req.user!.id;
 
       if (
         !Number.isInteger(
@@ -563,9 +557,7 @@ attachmentRouter.delete(
         Number(req.params.id);
 
       const requesterId =
-        Number(
-          req.body.requesterId
-        );
+        req.user!.id;
 
       const removalReason =
         typeof req.body

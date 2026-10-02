@@ -10,7 +10,6 @@ import AttachmentSection from "./AttachmentSection.js";
 
 interface TicketDetailProps {
   ticketId: number;
-  requesterId: number;
   requesterName: string;
   onBack: () => void;
 }
@@ -22,7 +21,6 @@ type DetailState =
 
 export default function TicketDetail({
   ticketId,
-  requesterId,
   requesterName,
   onBack,
 }: TicketDetailProps) {
@@ -43,8 +41,7 @@ export default function TicketDetail({
       try {
         const data =
           await getTicketById(
-            ticketId,
-            requesterId
+            ticketId
           );
 
         if (cancelled) {
@@ -68,10 +65,7 @@ export default function TicketDetail({
     return () => {
       cancelled = true;
     };
-  }, [
-    ticketId,
-    requesterId,
-  ]);
+  }, [ticketId]);
 
   if (state === "loading") {
     return (
@@ -327,7 +321,6 @@ export default function TicketDetail({
 
       <AttachmentSection
         ticketId={ticket.id}
-        requesterId={requesterId}
       />
     </section>
   );
