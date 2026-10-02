@@ -1,5 +1,6 @@
 import { Request, Response, Router } from "express";
 import { getPrisma } from "./prisma.js";
+import { logServerError } from "./log.js";
 import { requireRole } from "./auth.js";
 
 const MAX_COMMENT_LENGTH = 2000;
@@ -99,7 +100,8 @@ commentRouter.get(
       });
 
       return res.status(200).json({ items: comments.map(toComment) });
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res.status(500).json(SERVER_ERROR);
     }
   }
@@ -151,7 +153,8 @@ commentRouter.post(
       ]);
 
       return res.status(201).json(toComment(comment));
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res.status(500).json(SERVER_ERROR);
     }
   }
@@ -202,7 +205,8 @@ commentRouter.post(
       });
 
       return res.status(200).json(updated);
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res.status(500).json(SERVER_ERROR);
     }
   }
@@ -228,7 +232,8 @@ commentRouter.get(
       });
 
       return res.status(200).json({ items: notes.map(toComment) });
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res.status(500).json(SERVER_ERROR);
     }
   }
@@ -280,7 +285,8 @@ commentRouter.post(
       ]);
 
       return res.status(201).json(toComment(note));
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res.status(500).json(SERVER_ERROR);
     }
   }

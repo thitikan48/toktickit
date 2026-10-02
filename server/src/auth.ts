@@ -8,6 +8,7 @@ import session from "express-session";
 import bcrypt from "bcrypt";
 import { randomBytes } from "crypto";
 import { getPrisma } from "./prisma.js";
+import { logServerError } from "./log.js";
 import { validateNewPassword } from "./rules.js";
 
 const BCRYPT_COST = 12;
@@ -132,7 +133,8 @@ export async function loadUser(
     }
 
     return next();
-  } catch {
+  } catch (error) {
+      logServerError(error);
     return res.status(500).json(SERVER_ERROR);
   }
 }
@@ -281,7 +283,8 @@ authRouter.post("/login", async (req, res) => {
     req.session.userId = user.id;
 
     return res.status(200).json({ user: toMe(user) });
-  } catch {
+  } catch (error) {
+      logServerError(error);
     return res.status(500).json(SERVER_ERROR);
   }
 });
@@ -364,7 +367,8 @@ authRouter.post(
       req.session.userId = updated.id;
 
       return res.status(200).json({ user: toMe(updated) });
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res.status(500).json(SERVER_ERROR);
     }
   }

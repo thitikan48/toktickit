@@ -374,3 +374,41 @@ describe("Set New Initial Password", () => {
     );
   });
 });
+
+describe("Styling", () => {
+  it("shows role and account badges with text labels", async () => {
+    renderPage();
+    await screen.findByRole("table");
+
+    const staff = within(table()).getAllByText("IT Staff")[0];
+    const active = within(table()).getAllByText("Active")[0];
+    const inactiveBadge = within(table()).getByText("Inactive");
+    const administrator = within(table()).getByText("Administrator");
+
+    for (const badge of [staff, active, inactiveBadge, administrator]) {
+      expect(badge).toHaveClass("badge");
+    }
+
+    expect(administrator).toHaveStyle({ backgroundColor: "#006B3C" });
+    expect(active).toHaveStyle({ backgroundColor: "#ECFDF3" });
+    expect(inactiveBadge).toHaveStyle({ backgroundColor: "#EEF3F0" });
+  });
+
+  it("uses the primary button style for Create User and marks invalid fields with a message", async () => {
+    renderPage();
+    await screen.findByRole("table");
+
+    expect(screen.getByRole("button", { name: "+ Create User" })).toHaveClass("btn-success");
+
+    await userEvent.click(screen.getByRole("button", { name: "+ Create User" }));
+    const dialog = await screen.findByRole("dialog", { name: "Create User" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Create User" }));
+
+    const name = within(dialog).getByLabelText(/^Name/);
+    expect(name).toHaveClass("is-invalid");
+    expect(name.parentElement?.querySelector(".invalid-feedback")).toHaveTextContent(
+      "Name must be between 2 and 100 characters."
+    );
+    expect(within(dialog).getByRole("button", { name: "Cancel" })).toHaveClass("btn-outline-secondary");
+  });
+});

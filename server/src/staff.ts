@@ -1,6 +1,7 @@
 import { Request, Response, Router } from "express";
 import { Prisma } from "@prisma/client";
 import { getPrisma } from "./prisma.js";
+import { logServerError } from "./log.js";
 import { requireRole } from "./auth.js";
 import {
   canTransition,
@@ -199,7 +200,8 @@ staffRouter.get(
         totalItems,
         totalPages: totalItems === 0 ? 0 : Math.ceil(totalItems / PAGE_SIZE),
       });
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res.status(500).json(SERVER_ERROR);
     }
   }
@@ -222,7 +224,8 @@ staffRouter.get(
       });
 
       return res.status(200).json({ items });
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res.status(500).json(SERVER_ERROR);
     }
   }
@@ -268,7 +271,8 @@ staffRouter.get(
       }
 
       return res.status(200).json(ticket);
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res.status(500).json(SERVER_ERROR);
     }
   }
@@ -365,7 +369,8 @@ staffRouter.patch(
       });
 
       return res.status(200).json(updated);
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res.status(500).json(SERVER_ERROR);
     }
   }
@@ -439,7 +444,8 @@ staffRouter.post(
       });
 
       return res.status(200).json(updated);
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res.status(500).json(SERVER_ERROR);
     }
   }

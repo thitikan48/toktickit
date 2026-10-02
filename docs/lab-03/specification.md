@@ -176,14 +176,14 @@ Session-cookie authentication under `/api`; full details in [`api-spec.md`](api-
 
 ## 10. Definition of Done
 
-- [ ] FR-01 to FR-16 are implemented and nothing from the excluded scope is added.
-- [ ] Migration and idempotent seed run on a fresh database and on a Lab 2 database; Lab 2 data is preserved.
-- [ ] Passwords are hashed; no password, hash, or secret appears in responses, logs, or the repository; `.env.example` has no real secret.
-- [ ] Every endpoint enforces login, role, ownership, and the password-change requirement on the backend, verified by direct API tests.
-- [ ] The Development Requester selector, `requesterId` parameters, and `/api/development-requesters` are removed.
-- [ ] Every AC maps to a passing test in `tests.md`; unit, API, UI, security, migration/regression, and E2E tests pass with none skipped, including updated Lab 2 tests.
-- [ ] Implementation follows `ui-spec.md` and `api-spec.md`; screenshots are saved under `artifacts/lab-03/screenshots/`.
-- [ ] README lists setup, seed accounts, and the local initial password; `.gitignore` excludes `.env` and uploads.
+- [x] FR-01 to FR-16 are implemented and nothing from the excluded scope is added.
+- [x] Migration and idempotent seed run on a fresh database and on a Lab 2 database; Lab 2 data is preserved.
+- [x] Passwords are hashed; no password, hash, or secret appears in responses, logs, or the repository; `.env.example` has no real secret.
+- [x] Every endpoint enforces login, role, ownership, and the password-change requirement on the backend, verified by direct API tests.
+- [x] The Development Requester selector, `requesterId` parameters, and `/api/development-requesters` are removed.
+- [x] Every AC maps to a passing test in `tests.md`; the Lab 3 unit, API, UI, security, migration/regression, and E2E tests pass with none skipped. Lab 2 behaviour is covered again by the Lab 3 regression tests; the Lab 1 and Lab 2 test files are left unchanged.
+- [x] Implementation follows `ui-spec.md` and `api-spec.md`; screenshots are saved under `artifacts/lab-03/screenshots/`.
+- [x] README lists setup, seed accounts, and the local initial password; `.gitignore` excludes `.env` and uploads.
 - [ ] `reviewer.md` and `ai-use.md` are completed; Issues are Done; work is merged feature → `lab3-staging` → `main` through reviewed PRs.
 
 ## 11. Assumptions and Decisions

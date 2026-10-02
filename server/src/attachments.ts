@@ -8,6 +8,7 @@ import {
   writeFile,
 } from "fs/promises";
 import { getPrisma } from "./prisma.js";
+import { logServerError } from "./log.js";
 import { requireRole } from "./auth.js";
 
 const MAX_FILE_SIZE = 5_242_880;
@@ -165,7 +166,8 @@ attachmentRouter.get(
       return res
         .status(200)
         .json(attachments);
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res
         .status(500)
         .json({
@@ -388,7 +390,8 @@ attachmentRouter.post(
       return res
         .status(201)
         .json(attachment);
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res
         .status(500)
         .json({
@@ -525,7 +528,8 @@ attachmentRouter.get(
       return res
         .status(200)
         .send(file);
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res
         .status(500)
         .json({
@@ -678,7 +682,8 @@ attachmentRouter.delete(
         .json(
           removedAttachment
         );
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res
         .status(500)
         .json({

@@ -13,6 +13,7 @@ import {
 } from "./api.js";
 import AttachmentSection from "./AttachmentSection.js";
 import CommentSection from "./CommentSection.js";
+import Dialog from "./Dialog.js";
 import PriorityBadge from "./PriorityBadge.js";
 import StatusBadge, { statusLabel } from "./StatusBadge.js";
 import { allowedTransitions, needsConfirmation } from "./statusRules.js";
@@ -411,43 +412,31 @@ export default function StaffTicketDetail({
       <CommentSection ticketId={current.id} variant="internal" />
 
       {confirming && (
-        <div
-          className="modal d-block"
-          style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="confirm-title"
+        <Dialog
+          title={`Change status to ${statusLabel(statusDraft as TicketStatus)}?`}
+          onClose={() => setConfirming(false)}
         >
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h2 id="confirm-title" className="modal-title h5">
-                  Change status to {statusLabel(statusDraft as TicketStatus)}?
-                </h2>
-              </div>
-              <div className="modal-body">
-                The Requester will see the new status.
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary"
-                  onClick={() => setConfirming(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-success"
-                  style={{ backgroundColor: "#006B3C", borderColor: "#006B3C" }}
-                  onClick={() => void saveChanges(true)}
-                >
-                  Confirm
-                </button>
-              </div>
-            </div>
+          <div className="modal-body">
+            The Requester will see the new status.
           </div>
-        </div>
+          <div className="modal-footer">
+            <button
+              type="button"
+              className="btn btn-outline-secondary"
+              onClick={() => setConfirming(false)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn-success"
+              style={{ backgroundColor: "#006B3C", borderColor: "#006B3C" }}
+              onClick={() => void saveChanges(true)}
+            >
+              Confirm
+            </button>
+          </div>
+        </Dialog>
       )}
     </section>
   );

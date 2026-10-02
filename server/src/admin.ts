@@ -2,6 +2,7 @@ import { Request, Response, Router } from "express";
 import bcrypt from "bcrypt";
 import { Prisma } from "@prisma/client";
 import { getPrisma } from "./prisma.js";
+import { logServerError } from "./log.js";
 import { requireRole } from "./auth.js";
 import { validateNewPassword } from "./rules.js";
 
@@ -117,7 +118,8 @@ adminRouter.get(
       });
 
       return res.status(200).json({ items });
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res.status(500).json(SERVER_ERROR);
     }
   }
@@ -188,7 +190,8 @@ adminRouter.post(
       });
 
       return res.status(201).json(user);
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res.status(500).json(SERVER_ERROR);
     }
   }
@@ -316,7 +319,8 @@ adminRouter.patch(
       });
 
       return res.status(200).json(updated);
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res.status(500).json(SERVER_ERROR);
     }
   }
@@ -362,7 +366,8 @@ adminRouter.post(
       return res
         .status(200)
         .json({ id: target.id, mustChangePassword: true });
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res.status(500).json(SERVER_ERROR);
     }
   }
