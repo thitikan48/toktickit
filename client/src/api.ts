@@ -2,6 +2,164 @@ const API_URL =
   import.meta.env.VITE_API_URL ??
   "http://localhost:3000";
 
+/*
+ * Every request sends the session cookie. A 401 on a protected request
+ * (the session expired or the user was deactivated) is reported once so the
+ * app can return to the Login screen.
+ */
+let unauthorizedHandler: (() => void) | null = null;
+
+export function setUnauthorizedHandler(
+  handler: (() => void) | null
+) {
+  unauthorizedHandler = handler;
+}
+
+async function apiFetch(
+  url: string,
+  init: RequestInit = {}
+): Promise<Response> {
+  const response = await fetch(url, {
+    ...init,
+    credentials: "include",
+  });
+
+  if (
+    response.status === 401 &&
+    !url.includes("/api/auth/")
+  ) {
+    unauthorizedHandler?.();
+  }
+
+  return response;
+}
+
+export class ApiError extends Error {
+  status: number;
+  code: string;
+  fields: Record<string, string>;
+
+  constructor(
+    status: number,
+    code: string,
+    message: string,
+    fields: Record<string, string> = {}
+  ) {
+    super(message);
+    this.status = status;
+    this.code = code;
+    this.fields = fields;
+  }
+}
+
+async function readError(
+  response: Response,
+  fallback: string
+): Promise<ApiError> {
+  const body = await response
+    .json()
+    .catch(() => null);
+
+  return new ApiError(
+    response.status,
+    body?.error?.code ?? "SERVER_ERROR",
+    body?.error?.message ?? fallback,
+    body?.error?.fields ?? {}
+  );
+}
+
+export type UserRole =
+  | "REQUESTER"
+  | "IT_STAFF"
+  | "ADMIN";
+
+export interface AuthUser {
+  id: number;
+  name: string;
+  email: string;
+  role: UserRole;
+  mustChangePassword: boolean;
+}
+
+export async function login(
+  email: string,
+  password: string
+): Promise<AuthUser> {
+  const response = await apiFetch(
+    `${API_URL}/api/auth/login`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, password }),
+    }
+  );
+
+  if (!response.ok) {
+    throw await readError(
+      response,
+      "Unable to log in"
+    );
+  }
+
+  return (await response.json()).user;
+}
+
+export async function logout(): Promise<void> {
+  await apiFetch(`${API_URL}/api/auth/logout`, {
+    method: "POST",
+  });
+}
+
+/** Returns the logged-in user, or null when there is no session. */
+export async function getCurrentUser(): Promise<AuthUser | null> {
+  const response = await apiFetch(
+    `${API_URL}/api/auth/me`
+  );
+
+  if (response.status === 401) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw await readError(
+      response,
+      "Unable to load the current user"
+    );
+  }
+
+  return (await response.json()).user;
+}
+
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string
+): Promise<AuthUser> {
+  const response = await apiFetch(
+    `${API_URL}/api/auth/change-password`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        currentPassword,
+        newPassword,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    throw await readError(
+      response,
+      "Unable to change the password"
+    );
+  }
+
+  return (await response.json()).user;
+}
+
 export interface Category {
   id: number;
   name: string;
@@ -13,7 +171,7 @@ export interface SystemStatus {
 }
 
 export async function checkSystem(): Promise<SystemStatus> {
-  const healthResponse = await fetch(
+  const healthResponse = await apiFetch(
     `${API_URL}/api/health`
   );
 
@@ -25,7 +183,7 @@ export async function checkSystem(): Promise<SystemStatus> {
 
   await healthResponse.json();
 
-  const categoriesResponse = await fetch(
+  const categoriesResponse = await apiFetch(
     `${API_URL}/api/categories`
   );
 
@@ -44,28 +202,6 @@ export async function checkSystem(): Promise<SystemStatus> {
   };
 }
 
-export interface DevelopmentRequester {
-  id: number;
-  name: string;
-  email: string;
-}
-
-export async function getDevelopmentRequesters(): Promise<
-  DevelopmentRequester[]
-> {
-  const response = await fetch(
-    `${API_URL}/api/development-requesters`
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      "Unable to load Development Requesters"
-    );
-  }
-
-  return response.json();
-}
-
 export interface RelatedSystem {
   id: number;
   name: string;
@@ -74,7 +210,7 @@ export interface RelatedSystem {
 export async function getCategories(): Promise<
   Category[]
 > {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_URL}/api/categories`
   );
 
@@ -90,7 +226,7 @@ export async function getCategories(): Promise<
 export async function getRelatedSystems(): Promise<
   RelatedSystem[]
 > {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_URL}/api/related-systems`
   );
 
@@ -109,7 +245,6 @@ export type RequestedPriority =
   | "HIGH";
 
 export interface CreateTicketInput {
-  requesterId: number;
   categoryId: number;
   relatedSystemId: number;
   summary: string;
@@ -134,7 +269,7 @@ export interface CreatedTicket {
 export async function createTicket(
   input: CreateTicketInput
 ): Promise<CreatedTicket> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_URL}/api/tickets`,
     {
       method: "POST",
@@ -193,7 +328,6 @@ export interface TicketListResponse {
 }
 
 export interface GetTicketsParams {
-  requesterId: number;
   search?: string;
   status?: string;
   categoryId?: number;
@@ -209,11 +343,6 @@ export async function getTickets(
   params: GetTicketsParams
 ): Promise<TicketListResponse> {
   const query = new URLSearchParams();
-
-  query.set(
-    "requesterId",
-    String(params.requesterId)
-  );
 
   if (params.search) {
     query.set(
@@ -264,7 +393,7 @@ export async function getTickets(
     );
   }
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_URL}/api/tickets?${query.toString()}`
   );
 
@@ -281,18 +410,10 @@ export async function getTickets(
  * Issue 5: Load one owned Ticket
  */
 export async function getTicketById(
-  ticketId: number,
-  requesterId: number
+  ticketId: number
 ): Promise<TicketDetail> {
-  const query = new URLSearchParams();
-
-  query.set(
-    "requesterId",
-    String(requesterId)
-  );
-
-  const response = await fetch(
-    `${API_URL}/api/tickets/${ticketId}?${query.toString()}`
+  const response = await apiFetch(
+    `${API_URL}/api/tickets/${ticketId}`
   );
 
   if (!response.ok) {
@@ -321,20 +442,11 @@ export interface Attachment {
 }
 
 export async function getAttachments(
-  ticketId: number,
-  requesterId: number
+  ticketId: number
 ): Promise<Attachment[]> {
-  const query =
-    new URLSearchParams();
-
-  query.set(
-    "requesterId",
-    String(requesterId)
-  );
-
   const response =
-    await fetch(
-      `${API_URL}/api/tickets/${ticketId}/attachments?${query.toString()}`
+    await apiFetch(
+      `${API_URL}/api/tickets/${ticketId}/attachments`
     );
 
   if (!response.ok) {
@@ -348,16 +460,10 @@ export async function getAttachments(
 
 export async function uploadAttachment(
   ticketId: number,
-  requesterId: number,
   file: File
 ): Promise<Attachment> {
   const formData =
     new FormData();
-
-  formData.append(
-    "requesterId",
-    String(requesterId)
-  );
 
   formData.append(
     "file",
@@ -365,7 +471,7 @@ export async function uploadAttachment(
   );
 
   const response =
-    await fetch(
+    await apiFetch(
       `${API_URL}/api/tickets/${ticketId}/attachments`,
       {
         method: "POST",
@@ -390,11 +496,10 @@ export async function uploadAttachment(
 
 export async function removeAttachment(
   attachmentId: number,
-  requesterId: number,
   removalReason: string
 ): Promise<Attachment> {
   const response =
-    await fetch(
+    await apiFetch(
       `${API_URL}/api/attachments/${attachmentId}`,
       {
         method: "DELETE",
@@ -405,7 +510,6 @@ export async function removeAttachment(
         },
 
         body: JSON.stringify({
-          requesterId,
           removalReason,
         }),
       }
@@ -427,16 +531,7 @@ export async function removeAttachment(
 }
 
 export function getAttachmentDownloadUrl(
-  attachmentId: number,
-  requesterId: number
+  attachmentId: number
 ) {
-  const query =
-    new URLSearchParams();
-
-  query.set(
-    "requesterId",
-    String(requesterId)
-  );
-
-  return `${API_URL}/api/attachments/${attachmentId}/download?${query.toString()}`;
+  return `${API_URL}/api/attachments/${attachmentId}/download`;
 }

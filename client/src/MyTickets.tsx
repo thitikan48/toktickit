@@ -13,14 +13,12 @@ import {
 } from "./api.js";
 
 interface MyTicketsProps {
-  requesterId: number;
   onOpenTicket?: (
     ticket: TicketListItem
   ) => void;
 }
 
 export default function MyTickets({
-  requesterId,
   onOpenTicket,
 }: MyTicketsProps) {
   const [tickets, setTickets] =
@@ -86,10 +84,6 @@ export default function MyTickets({
   }, []);
 
   useEffect(() => {
-    setPage(1);
-  }, [requesterId]);
-
-  useEffect(() => {
     let cancelled = false;
 
     async function loadTickets() {
@@ -99,8 +93,6 @@ export default function MyTickets({
       try {
         const result =
           await getTickets({
-            requesterId,
-
             search:
               search.trim() ||
               undefined,
@@ -158,7 +150,6 @@ export default function MyTickets({
       cancelled = true;
     };
   }, [
-    requesterId,
     search,
     status,
     categoryId,

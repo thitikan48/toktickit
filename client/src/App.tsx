@@ -1,492 +1,324 @@
+import { useEffect, useState } from "react";
 import {
-  useEffect,
-  useState,
-} from "react";
-import {
-  DevelopmentRequester,
-  getDevelopmentRequesters,
+  AuthUser,
   TicketListItem,
+  UserRole,
+  getCurrentUser,
+  logout,
+  setUnauthorizedHandler,
 } from "./api.js";
+import ChangePassword from "./ChangePassword.js";
 import CreateTicket from "./CreateTicket.js";
+import Login from "./Login.js";
 import MyTickets from "./MyTickets.js";
 import TicketDetail from "./TicketDetail.js";
 
-type RequesterState =
-  | "loading"
-  | "ready"
-  | "empty"
-  | "error";
-
-type AppScreen =
+type Screen =
   | "home"
   | "create"
-  | "detail";
+  | "detail"
+  | "change-password"
+  | "queue"
+  | "users";
+
+const ROLE_LABELS: Record<UserRole, string> = {
+  REQUESTER: "Requester",
+  IT_STAFF: "IT Staff",
+  ADMIN: "Administrator",
+};
+
+// Navigation allowed for each role (the backend enforces access as well).
+const NAVIGATION: Record<
+  UserRole,
+  { screen: Screen; label: string }[]
+> = {
+  REQUESTER: [
+    { screen: "home", label: "My Tickets" },
+    { screen: "create", label: "Create Ticket" },
+  ],
+  IT_STAFF: [{ screen: "queue", label: "Ticket Queue" }],
+  ADMIN: [
+    { screen: "queue", label: "Ticket Queue" },
+    { screen: "users", label: "User Management" },
+  ],
+};
+
+const HOME_SCREEN: Record<UserRole, Screen> = {
+  REQUESTER: "home",
+  IT_STAFF: "queue",
+  ADMIN: "queue",
+};
+
+const SESSION_EXPIRED =
+  "Your session has expired. Please log in again.";
 
 export default function App() {
-  const [requesters, setRequesters] =
-    useState<DevelopmentRequester[]>([]);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [screen, setScreen] = useState<Screen>("home");
+  const [selectedTicketId, setSelectedTicketId] =
+    useState<number | null>(null);
 
-  const [
-    selectedRequesterId,
-    setSelectedRequesterId,
-  ] = useState("");
+  function showHome(current: AuthUser) {
+    setSelectedTicketId(null);
+    setScreen(HOME_SCREEN[current.role]);
+  }
 
-  const [
-    currentRequester,
-    setCurrentRequester,
-  ] =
-    useState<DevelopmentRequester | null>(
-      null
-    );
-
-  const [state, setState] =
-    useState<RequesterState>("loading");
-
-  const [screen, setScreen] =
-    useState<AppScreen>("home");
-
-  const [
-    selectedTicketId,
-    setSelectedTicketId,
-  ] = useState<number | null>(null);
-
-  useEffect(() => {
-    void loadRequesters();
-  }, []);
-
-  async function loadRequesters() {
-    setState("loading");
+  async function restoreSession() {
+    setLoading(true);
+    setLoadError(false);
 
     try {
-      const data =
-        await getDevelopmentRequesters();
+      const current = await getCurrentUser();
 
-      setRequesters(data);
-
-      if (data.length === 0) {
-        setCurrentRequester(null);
-        setState("empty");
-        return;
+      if (current) {
+        setUser(current);
+        showHome(current);
       }
-
-      const storedRequesterId =
-        sessionStorage.getItem(
-          "developmentRequesterId"
-        );
-
-      if (storedRequesterId) {
-        const storedRequester =
-          data.find(
-            (requester) =>
-              requester.id ===
-              Number(storedRequesterId)
-          );
-
-        if (storedRequester) {
-          setCurrentRequester(
-            storedRequester
-          );
-
-          setSelectedRequesterId(
-            String(storedRequester.id)
-          );
-        } else {
-          sessionStorage.removeItem(
-            "developmentRequesterId"
-          );
-        }
-      }
-
-      setState("ready");
     } catch {
-      setState("error");
+      setLoadError(true);
+    } finally {
+      setLoading(false);
     }
   }
 
-  function handleContinue() {
-    if (!selectedRequesterId) {
-      return;
-    }
+  useEffect(() => {
+    // The Lab 2 Development Requester selector no longer exists.
+    sessionStorage.removeItem("developmentRequesterId");
 
-    const requester =
-      requesters.find(
-        (item) =>
-          item.id ===
-          Number(selectedRequesterId)
-      );
+    void restoreSession();
 
-    if (!requester) {
-      return;
-    }
+    setUnauthorizedHandler(() => {
+      setUser(null);
+      setNotice(SESSION_EXPIRED);
+    });
 
-    sessionStorage.setItem(
-      "developmentRequesterId",
-      selectedRequesterId
-    );
+    return () => setUnauthorizedHandler(null);
+  }, []);
 
-    setCurrentRequester(requester);
-    setSelectedTicketId(null);
-    setScreen("home");
+  function handleLoggedIn(current: AuthUser) {
+    setNotice("");
+    setUser(current);
+    showHome(current);
   }
 
-  function handleChangeRequester() {
-    sessionStorage.removeItem(
-      "developmentRequesterId"
-    );
-
-    setCurrentRequester(null);
-    setSelectedRequesterId("");
-    setSelectedTicketId(null);
-    setScreen("home");
+  async function handleLogout() {
+    try {
+      await logout();
+    } finally {
+      setUser(null);
+      setNotice("");
+    }
   }
 
-  function handleOpenTicket(
-    ticket: TicketListItem
-  ) {
+  function handleOpenTicket(ticket: TicketListItem) {
     setSelectedTicketId(ticket.id);
     setScreen("detail");
   }
 
-  function handleBackToTickets() {
+  function go(next: Screen) {
     setSelectedTicketId(null);
-    setScreen("home");
+    setScreen(next);
   }
 
-  if (currentRequester) {
+  if (loading) {
     return (
       <main
-        className="min-vh-100"
-        style={{
-          backgroundColor: "#F5F7F6",
-        }}
+        className="min-vh-100 d-flex align-items-center justify-content-center"
+        style={{ backgroundColor: "#F5F7F6" }}
+        aria-busy="true"
       >
-        <header
-          className="text-white"
-          style={{
-            backgroundColor: "#006B3C",
-          }}
-        >
+        <div>
           <div
-            className="container py-3"
-            style={{
-              maxWidth: 1200,
-            }}
-          >
-            <div className="d-flex flex-wrap align-items-center gap-3">
-              <strong className="fs-5 me-md-3">
-                TokTickIT
-              </strong>
-
-              <nav className="d-flex flex-wrap align-items-center gap-2">
-                <button
-                  type="button"
-                  className={`btn btn-link text-white text-decoration-none px-3 py-2 ${
-                    screen === "home" ||
-                    screen === "detail"
-                      ? "fw-bold border-bottom border-3"
-                      : ""
-                  }`}
-                  onClick={() => {
-                    setSelectedTicketId(
-                      null
-                    );
-                    setScreen("home");
-                  }}
-                >
-                  My Tickets
-                </button>
-
-                <button
-                  type="button"
-                  className={`btn btn-link text-white text-decoration-none px-3 py-2 ${
-                    screen === "create"
-                      ? "fw-bold border-bottom border-3"
-                      : ""
-                  }`}
-                  onClick={() => {
-                    setSelectedTicketId(
-                      null
-                    );
-                    setScreen("create");
-                  }}
-                >
-                  Create Ticket
-                </button>
-              </nav>
-
-              {/*
-               * Force the Requester area
-               * onto a new row on mobile.
-               * Hidden from md and larger.
-               */}
-              <div className="w-100 d-md-none" />
-
-              <div className="d-flex flex-wrap align-items-center gap-2 gap-md-3 ms-md-auto">
-                <span>
-                  {
-                    currentRequester.name
-                  }
-                </span>
-
-                <button
-                  type="button"
-                  className="btn btn-light btn-sm"
-                  onClick={
-                    handleChangeRequester
-                  }
-                >
-                  Change Requester
-                </button>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {screen === "home" && (
-          <MyTickets
-            requesterId={
-              currentRequester.id
-            }
-            onOpenTicket={
-              handleOpenTicket
-            }
+            className="spinner-border me-2"
+            role="status"
+            aria-hidden="true"
           />
-        )}
-
-        {screen === "create" && (
-          <CreateTicket
-            requesterId={
-              currentRequester.id
-            }
-            requesterName={
-              currentRequester.name
-            }
-          />
-        )}
-
-        {screen === "detail" &&
-          selectedTicketId !== null && (
-            <TicketDetail
-              ticketId={
-                selectedTicketId
-              }
-              requesterId={
-                currentRequester.id
-              }
-              requesterName={
-                currentRequester.name
-              }
-              onBack={
-                handleBackToTickets
-              }
-            />
-          )}
+          Loading...
+        </div>
       </main>
     );
   }
 
+  if (loadError) {
+    return (
+      <main
+        className="min-vh-100 d-flex align-items-center justify-content-center"
+        style={{ backgroundColor: "#F5F7F6" }}
+      >
+        <div className="text-center">
+          <div className="alert alert-danger" role="alert">
+            Unable to reach TokTickIT. Please try again.
+          </div>
+          <button
+            type="button"
+            className="btn btn-outline-success"
+            onClick={() => void restoreSession()}
+          >
+            Retry
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  if (!user) {
+    return <Login onLoggedIn={handleLoggedIn} notice={notice} />;
+  }
+
+  const mandatoryPasswordChange = user.mustChangePassword;
+  const navigation = NAVIGATION[user.role];
+
   return (
     <main
       className="min-vh-100"
-      style={{
-        backgroundColor: "#F5F7F6",
-      }}
+      style={{ backgroundColor: "#F5F7F6" }}
     >
       <header
         className="text-white"
-        style={{
-          backgroundColor: "#006B3C",
-        }}
+        style={{ backgroundColor: "#006B3C" }}
       >
         <div
           className="container py-3"
-          style={{
-            maxWidth: 1200,
-          }}
+          style={{ maxWidth: 1200 }}
         >
-          <strong className="fs-5">
-            TokTickIT
-          </strong>
+          <div className="d-flex flex-wrap align-items-center gap-3">
+            <strong className="fs-5 me-md-3">TokTickIT</strong>
+
+            {!mandatoryPasswordChange && (
+              <nav
+                className="d-flex flex-wrap align-items-center gap-2"
+                aria-label="Main"
+              >
+                {navigation.map((item) => {
+                  const active =
+                    screen === item.screen ||
+                    (item.screen === "home" &&
+                      screen === "detail");
+
+                  return (
+                    <button
+                      key={item.screen}
+                      type="button"
+                      className={`btn btn-link text-white text-decoration-none px-3 py-2 ${
+                        active
+                          ? "fw-bold border-bottom border-3"
+                          : ""
+                      }`}
+                      onClick={() => go(item.screen)}
+                    >
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </nav>
+            )}
+
+            {/* Starts a new row on mobile. */}
+            <div className="w-100 d-md-none" />
+
+            <div className="d-flex flex-wrap align-items-center gap-2 gap-md-3 ms-md-auto">
+              <span>{user.name}</span>
+              <span className="badge bg-light text-success">
+                {ROLE_LABELS[user.role]}
+              </span>
+
+              {!mandatoryPasswordChange && (
+                <button
+                  type="button"
+                  className="btn btn-outline-light btn-sm"
+                  onClick={() => go("change-password")}
+                >
+                  Change Password
+                </button>
+              )}
+
+              <button
+                type="button"
+                className="btn btn-light btn-sm"
+                onClick={() => void handleLogout()}
+              >
+                Logout
+              </button>
+            </div>
+          </div>
         </div>
       </header>
 
-      <div className="container py-5">
-        <section
-          className="card shadow-sm mx-auto overflow-hidden"
-          style={{
-            maxWidth: 680,
-            border:
-              "1px solid #D6E0DA",
-            borderRadius: 12,
+      {mandatoryPasswordChange ? (
+        <ChangePassword
+          mandatory
+          onChanged={(updated) => {
+            setUser(updated);
+            showHome(updated);
           }}
-        >
-          <div className="p-4 p-md-5">
-            <div className="text-center mb-4">
-              <div
-                className="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
-                style={{
-                  width: 60,
-                  height: 60,
-                  backgroundColor:
-                    "#EAF6EF",
-                  color:
-                    "#006B3C",
-                  fontSize: 26,
-                }}
-              >
-                👤
-              </div>
+        />
+      ) : (
+        <>
+          {screen === "change-password" && (
+            <ChangePassword
+              mandatory={false}
+              onChanged={(updated) => {
+                setUser(updated);
+                showHome(updated);
+              }}
+              onCancel={() => showHome(user)}
+            />
+          )}
 
-              <h1 className="h3 mb-2">
-                Select Development
-                Requester
-              </h1>
-
-              <p className="text-muted mb-1">
-                Select a Development
-                Requester for Lab 2
-                testing only.
-              </p>
-
-              <p className="text-muted small mb-0">
-                This is not a login
-                screen. Authentication
-                and role-based access
-                will be introduced in
-                Lab 3.
-              </p>
-            </div>
-
-            {state ===
-              "loading" && (
-              <div
-                className="text-center py-4"
-                aria-busy="true"
-              >
-                <div
-                  className="spinner-border mb-3"
-                  role="status"
-                  aria-hidden="true"
+          {user.role === "REQUESTER" && (
+            <>
+              {screen === "home" && (
+                <MyTickets
+                  key={user.id}
+                  onOpenTicket={handleOpenTicket}
                 />
+              )}
 
-                <p className="mb-0">
-                  Loading Requesters...
-                </p>
-              </div>
-            )}
+              {screen === "create" && (
+                <CreateTicket
+                  key={user.id}
+                  requesterName={user.name}
+                />
+              )}
 
-            {state === "error" && (
-              <div>
-                <div
-                  className="alert alert-danger"
-                  role="alert"
+              {screen === "detail" &&
+                selectedTicketId !== null && (
+                  <TicketDetail
+                    key={user.id}
+                    ticketId={selectedTicketId}
+                    requesterName={user.name}
+                    onBack={() => go("home")}
+                  />
+                )}
+            </>
+          )}
+
+          {user.role !== "REQUESTER" &&
+            (screen === "queue" || screen === "users") && (
+              <div className="container py-5" style={{ maxWidth: 1200 }}>
+                <section
+                  className="card shadow-sm p-4"
+                  style={{
+                    border: "1px solid #D6E0DA",
+                    borderRadius: 12,
+                  }}
                 >
-                  Unable to load
-                  Development
-                  Requesters. Please
-                  try again.
-                </div>
-
-                <div className="d-flex justify-content-end">
-                  <button
-                    type="button"
-                    className="btn btn-outline-success"
-                    onClick={() =>
-                      void loadRequesters()
-                    }
-                  >
-                    Retry
-                  </button>
-                </div>
+                  <h1 className="h4">
+                    {screen === "queue"
+                      ? "Ticket Queue"
+                      : "User Management"}
+                  </h1>
+                  <p className="text-muted mb-0">
+                    This screen is built in a later Lab 3 issue.
+                  </p>
+                </section>
               </div>
             )}
-
-            {state === "empty" && (
-              <div
-                className="alert alert-warning"
-                role="status"
-              >
-                No active Development
-                Requesters are
-                available.
-              </div>
-            )}
-
-            {state === "ready" && (
-              <div>
-                <label
-                  htmlFor="developmentRequester"
-                  className="form-label fw-semibold"
-                >
-                  Development
-                  Requester{" "}
-                  <span className="text-danger">
-                    *
-                  </span>
-                </label>
-
-                <select
-                  id="developmentRequester"
-                  className="form-select"
-                  value={
-                    selectedRequesterId
-                  }
-                  onChange={(
-                    event
-                  ) =>
-                    setSelectedRequesterId(
-                      event.target
-                        .value
-                    )
-                  }
-                >
-                  <option value="">
-                    Select requester
-                  </option>
-
-                  {requesters.map(
-                    (
-                      requester
-                    ) => (
-                      <option
-                        key={
-                          requester.id
-                        }
-                        value={
-                          requester.id
-                        }
-                      >
-                        {
-                          requester.name
-                        }
-                      </option>
-                    )
-                  )}
-                </select>
-
-                <div className="d-flex justify-content-end mt-4">
-                  <button
-                    type="button"
-                    className="btn text-white px-4"
-                    style={{
-                      backgroundColor:
-                        "#006B3C",
-                    }}
-                    disabled={
-                      !selectedRequesterId
-                    }
-                    onClick={
-                      handleContinue
-                    }
-                  >
-                    Continue
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
-      </div>
+        </>
+      )}
     </main>
   );
 }
