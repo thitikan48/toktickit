@@ -14,6 +14,7 @@ import Login from "./Login.js";
 import MyTickets from "./MyTickets.js";
 import StaffTicketDetail from "./StaffTicketDetail.js";
 import StaffTicketQueue from "./StaffTicketQueue.js";
+import UserManagement from "./UserManagement.js";
 import TicketDetail from "./TicketDetail.js";
 
 type Screen =
@@ -326,21 +327,8 @@ export default function App() {
                 />
               )}
 
-              {screen === "users" && (
-                <div className="container py-5" style={{ maxWidth: 1200 }}>
-                  <section
-                    className="card shadow-sm p-4"
-                    style={{
-                      border: "1px solid #D6E0DA",
-                      borderRadius: 12,
-                    }}
-                  >
-                    <h1 className="h4">User Management</h1>
-                    <p className="text-muted mb-0">
-                      This screen is built in a later Lab 3 issue.
-                    </p>
-                  </section>
-                </div>
+              {screen === "users" && user.role === "ADMIN" && (
+                <UserManagement key={user.id} currentUserId={user.id} />
               )}
             </>
           )}
