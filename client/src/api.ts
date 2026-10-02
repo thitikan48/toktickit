@@ -802,3 +802,96 @@ export async function postInternalNote(
 
   return response.json();
 }
+
+/*
+ * Administrator: User Management
+ */
+export interface AdminUser {
+  id: number;
+  name: string;
+  email: string;
+  role: UserRole;
+  isActive: boolean;
+  mustChangePassword: boolean;
+}
+
+export async function getUsers(params: {
+  search?: string;
+  role?: UserRole | "";
+}): Promise<AdminUser[]> {
+  const query = new URLSearchParams();
+
+  if (params.search) query.set("search", params.search);
+  if (params.role) query.set("role", params.role);
+
+  const response = await apiFetch(
+    `${API_URL}/api/admin/users?${query.toString()}`
+  );
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to load users");
+  }
+
+  return (await response.json()).items;
+}
+
+export interface UserInput {
+  name: string;
+  email: string;
+  role: UserRole;
+  isActive: boolean;
+}
+
+export async function createUser(
+  input: UserInput & { initialPassword: string }
+): Promise<AdminUser> {
+  const response = await apiFetch(`${API_URL}/api/admin/users`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to create the user");
+  }
+
+  return response.json();
+}
+
+export async function updateUser(
+  userId: number,
+  changes: Partial<UserInput>
+): Promise<AdminUser> {
+  const response = await apiFetch(
+    `${API_URL}/api/admin/users/${userId}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(changes),
+    }
+  );
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to save the user");
+  }
+
+  return response.json();
+}
+
+export async function setInitialPassword(
+  userId: number,
+  initialPassword: string
+): Promise<void> {
+  const response = await apiFetch(
+    `${API_URL}/api/admin/users/${userId}/initial-password`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ initialPassword }),
+    }
+  );
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to set the password");
+  }
+}

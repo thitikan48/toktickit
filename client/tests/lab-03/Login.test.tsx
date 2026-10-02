@@ -190,6 +190,32 @@ describe("Application shell", () => {
     expect(screen.getByRole("button", { name: "Ticket Queue" })).toBeInTheDocument();
   });
 
+  it("opens User Management from the Administrator navigation", async () => {
+    vi.spyOn(api, "getCurrentUser").mockResolvedValue(admin);
+    vi.spyOn(api, "getUsers").mockResolvedValue([]);
+
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "User Management" }));
+
+    expect(await screen.findByRole("heading", { name: "User Management" })).toBeInTheDocument();
+    expect(await screen.findByText("No users yet.")).toBeInTheDocument();
+  });
+
+  it("never shows User Management to IT Staff or Requesters", async () => {
+    for (const person of [staff, requester]) {
+      vi.spyOn(api, "getCurrentUser").mockResolvedValue(person);
+
+      const { unmount } = render(<App />);
+
+      await screen.findByText(person.name);
+      expect(screen.queryByRole("button", { name: "User Management" })).toBeNull();
+      expect(screen.queryByRole("heading", { name: "User Management" })).toBeNull();
+
+      unmount();
+    }
+  });
+
   it("logs out and returns to Login", async () => {
     vi.spyOn(api, "getCurrentUser").mockResolvedValue(requester);
     const logoutSpy = vi.spyOn(api, "logout").mockResolvedValue();

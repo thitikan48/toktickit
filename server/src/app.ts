@@ -4,6 +4,7 @@ import { getPrisma } from "./prisma.js";
 import { attachmentRouter } from "./attachments.js";
 import { commentRouter } from "./comments.js";
 import { staffRouter } from "./staff.js";
+import { adminRouter } from "./admin.js";
 import { generateTicketNumber } from "./ticket-number.js";
 import {
   authRouter,
@@ -45,6 +46,7 @@ app.use("/api", requireAuth);
 app.use("/api", attachmentRouter);
 app.use("/api", commentRouter);
 app.use("/api", staffRouter);
+app.use("/api", adminRouter);
 
 app.get("/api/categories", async (_req: Request, res: Response) => {
   try {
