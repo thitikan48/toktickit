@@ -239,6 +239,16 @@ export async function getRelatedSystems(): Promise<
   return response.json();
 }
 
+export type TicketStatus =
+  | "NEW"
+  | "OPEN"
+  | "IN_PROGRESS"
+  | "WAITING_FOR_REQUESTER"
+  | "RESOLVED"
+  | "CLOSED"
+  | "REOPENED"
+  | "CANCELLED";
+
 export type RequestedPriority =
   | "LOW"
   | "MEDIUM"
@@ -261,7 +271,7 @@ export interface CreatedTicket {
   summary: string;
   description: string;
   requestedPriority: RequestedPriority;
-  currentStatus: "NEW";
+  currentStatus: TicketStatus;
   createdAt: string;
   updatedAt: string;
 }
@@ -298,9 +308,16 @@ export interface TicketListItem {
   summary: string;
   description: string;
   requestedPriority: RequestedPriority;
-  currentStatus: "NEW";
+  itPriority: RequestedPriority;
+  currentStatus: TicketStatus;
+  requesterMarkedResolved: boolean;
   createdAt: string;
   updatedAt: string;
+
+  owner: {
+    id: number;
+    name: string;
+  } | null;
 
   category: {
     id: number;
@@ -534,4 +551,76 @@ export function getAttachmentDownloadUrl(
   attachmentId: number
 ) {
   return `${API_URL}/api/attachments/${attachmentId}/download`;
+}
+
+/*
+ * Public Comments and "Problem Appears Resolved"
+ */
+export interface TicketComment {
+  id: number;
+  body: string;
+  createdAt: string;
+  author: {
+    id: number;
+    name: string;
+    role: UserRole;
+  };
+}
+
+export async function getComments(
+  ticketId: number
+): Promise<TicketComment[]> {
+  const response = await apiFetch(
+    `${API_URL}/api/tickets/${ticketId}/comments`
+  );
+
+  if (!response.ok) {
+    throw await readError(
+      response,
+      "Unable to load comments"
+    );
+  }
+
+  return (await response.json()).items;
+}
+
+export async function postComment(
+  ticketId: number,
+  body: string
+): Promise<TicketComment> {
+  const response = await apiFetch(
+    `${API_URL}/api/tickets/${ticketId}/comments`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ body }),
+    }
+  );
+
+  if (!response.ok) {
+    throw await readError(
+      response,
+      "Unable to post the comment"
+    );
+  }
+
+  return response.json();
+}
+
+export async function markAppearsResolved(
+  ticketId: number
+): Promise<void> {
+  const response = await apiFetch(
+    `${API_URL}/api/tickets/${ticketId}/appears-resolved`,
+    { method: "POST" }
+  );
+
+  if (!response.ok) {
+    throw await readError(
+      response,
+      "Unable to send your update"
+    );
+  }
 }

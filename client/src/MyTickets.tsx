@@ -1,3 +1,4 @@
+import StatusBadge, { STATUS_OPTIONS } from "./StatusBadge.js";
 import {
   useEffect,
   useMemo,
@@ -314,9 +315,16 @@ export default function MyTickets({
                   All
                 </option>
 
-                <option value="NEW">
-                  New
-                </option>
+                {STATUS_OPTIONS.map(
+                  (option) => (
+                    <option
+                      key={option.value}
+                      value={option.value}
+                    >
+                      {option.label}
+                    </option>
+                  )
+                )}
               </select>
             </div>
 
@@ -636,17 +644,11 @@ export default function MyTickets({
                           </td>
 
                           <td className="py-3">
-                            <span
-                              className="badge"
-                              style={{
-                                backgroundColor:
-                                  "#EAF6EF",
-                                color:
-                                  "#006B3C",
-                              }}
-                            >
-                              New
-                            </span>
+                            <StatusBadge
+                              status={
+                                ticket.currentStatus
+                              }
+                            />
                           </td>
 
                           <td className="py-3">
@@ -706,17 +708,12 @@ export default function MyTickets({
                           }
                         </div>
 
-                        <span
-                          className="badge flex-shrink-0"
-                          style={{
-                            backgroundColor:
-                              "#EAF6EF",
-                            color:
-                              "#006B3C",
-                          }}
-                        >
-                          New
-                        </span>
+                        <StatusBadge
+                          className="flex-shrink-0"
+                          status={
+                            ticket.currentStatus
+                          }
+                        />
                       </div>
 
                       <h2 className="h6 mb-3 text-break">

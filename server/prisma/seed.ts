@@ -75,6 +75,7 @@ const tickets: SeedTicket[] = [
   { number: "TKT-2026-900010", requester: "michael.brown@example.com", category: "Hardware", system: "Printer", summary: "Order a new printer toner", description: "The toner is almost empty and needs replacing.", requestedPriority: "LOW", itPriority: "LOW", status: "CANCELLED", owner: null },
   { number: "TKT-2026-900011", requester: "sarah.johnson@example.com", category: "Network", system: "Campus Wi-Fi", summary: "No Wi-Fi in room B204", description: "There is no Wi-Fi signal at all in room B204.", requestedPriority: "HIGH", itPriority: "HIGH", status: "NEW", owner: null },
   { number: "TKT-2026-900012", requester: "david.lee@example.com", category: "Account and Access", system: "VPN", summary: "VPN account expired", description: "My VPN account says it has expired.", requestedPriority: "MEDIUM", itPriority: "MEDIUM", status: "OPEN", owner: "marcus.chen@example.com" },
+  { number: "TKT-2026-900013", requester: "jennifer.anderson@example.com", category: "Hardware", system: "Corporate Laptop", summary: "Laptop keyboard key stuck", description: "The letter E key sticks and repeats characters.", requestedPriority: "LOW", itPriority: "LOW", status: "RESOLVED", owner: "elena.rossi@example.com", comment: ["elena.rossi@example.com", "The keyboard was replaced. Please confirm it works."] },
 ];
 
 async function seedUsers() {

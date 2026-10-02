@@ -2,11 +2,13 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import { getPrisma } from "./prisma.js";
 import { attachmentRouter } from "./attachments.js";
+import { commentRouter } from "./comments.js";
 import { generateTicketNumber } from "./ticket-number.js";
 import {
   authRouter,
   loadUser,
   requireAuth,
+  requireRole,
   sessionMiddleware,
 } from "./auth.js";
 
@@ -40,6 +42,7 @@ app.use("/api/auth", authRouter);
 app.use("/api", requireAuth);
 
 app.use("/api", attachmentRouter);
+app.use("/api", commentRouter);
 
 app.get("/api/categories", async (_req: Request, res: Response) => {
   try {
@@ -101,6 +104,7 @@ app.get(
  */
 app.get(
   "/api/tickets",
+  requireRole("REQUESTER"),
   async (req: Request, res: Response) => {
     try {
       const prisma = getPrisma();
@@ -208,6 +212,13 @@ app.get(
                   name: true,
                 },
               },
+
+              owner: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
             },
 
             orderBy:
@@ -261,6 +272,7 @@ app.get(
  */
 app.get(
   "/api/tickets/:id",
+  requireRole("REQUESTER"),
   async (req: Request, res: Response) => {
     try {
       const prisma = getPrisma();
@@ -304,28 +316,27 @@ app.get(
                 name: true,
               },
             },
+
+            owner: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         });
 
-      if (!ticket) {
+      // Another Requester's ticket gets the same answer as a missing one,
+      // so its existence is not revealed.
+      if (
+        !ticket ||
+        ticket.requesterId !== requesterId
+      ) {
         return res.status(404).json({
           error: {
             code: "NOT_FOUND",
             message:
               "Ticket was not found.",
-          },
-        });
-      }
-
-      if (
-        ticket.requesterId !==
-        requesterId
-      ) {
-        return res.status(403).json({
-          error: {
-            code: "FORBIDDEN",
-            message:
-              "You are not authorized to access this resource.",
           },
         });
       }
@@ -350,6 +361,7 @@ app.get(
  */
 app.post(
   "/api/tickets",
+  requireRole("REQUESTER"),
   async (req: Request, res: Response) => {
     try {
       const prisma = getPrisma();
