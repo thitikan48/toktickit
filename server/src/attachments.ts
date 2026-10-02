@@ -8,6 +8,7 @@ import {
   writeFile,
 } from "fs/promises";
 import { getPrisma } from "./prisma.js";
+import { requireRole } from "./auth.js";
 
 const MAX_FILE_SIZE = 5_242_880;
 const MAX_ACTIVE_ATTACHMENTS = 5;
@@ -54,16 +55,6 @@ function validationError(
     error: {
       code: "VALIDATION_ERROR",
       message,
-    },
-  };
-}
-
-function forbiddenError() {
-  return {
-    error: {
-      code: "FORBIDDEN",
-      message:
-        "You are not authorized to access this resource.",
     },
   };
 }
@@ -138,9 +129,11 @@ attachmentRouter.get(
         requesterId
       ) {
         return res
-          .status(403)
+          .status(404)
           .json(
-            forbiddenError()
+            notFoundError(
+              "Ticket was not found."
+            )
           );
       }
 
@@ -189,6 +182,7 @@ attachmentRouter.get(
  */
 attachmentRouter.post(
   "/tickets/:id/attachments",
+  requireRole("REQUESTER"),
 
   (req, res, next) => {
     upload.single("file")(
@@ -305,9 +299,11 @@ attachmentRouter.post(
         requesterId
       ) {
         return res
-          .status(403)
+          .status(404)
           .json(
-            forbiddenError()
+            notFoundError(
+              "Ticket was not found."
+            )
           );
       }
 
@@ -468,9 +464,11 @@ attachmentRouter.get(
         requesterId
       ) {
         return res
-          .status(403)
+          .status(404)
           .json(
-            forbiddenError()
+            notFoundError(
+              "Attachment was not found."
+            )
           );
       }
 
@@ -548,6 +546,7 @@ attachmentRouter.get(
  */
 attachmentRouter.delete(
   "/attachments/:id",
+  requireRole("REQUESTER"),
   async (req, res) => {
     try {
       const prisma =
@@ -614,9 +613,11 @@ attachmentRouter.delete(
         requesterId
       ) {
         return res
-          .status(403)
+          .status(404)
           .json(
-            forbiddenError()
+            notFoundError(
+              "Attachment was not found."
+            )
           );
       }
 

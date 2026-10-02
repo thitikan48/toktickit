@@ -182,6 +182,33 @@ export function requireAuth(
   return next();
 }
 
+/**
+ * Only the listed roles may continue; everyone else gets 403.
+ * Runs after requireAuth, so the user is known and active.
+ */
+export function requireRole(
+  ...roles: AuthUser["role"][]
+) {
+  return (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res
+        .status(403)
+        .json(
+          errorBody(
+            "FORBIDDEN",
+            "You are not authorized to perform this action."
+          )
+        );
+    }
+
+    return next();
+  };
+}
+
 function regenerate(req: Request): Promise<void> {
   return new Promise((resolve, reject) => {
     req.session.regenerate((error) =>

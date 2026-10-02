@@ -209,7 +209,7 @@ describe("Seed", () => {
       await prisma.ticket.count({
         where: { ticketNumber: { startsWith: "TKT-2026-9000" } },
       })
-    ).toBe(12);
+    ).toBe(13);
   }, 60_000);
 
   it("gives the seeded accounts the documented initial password", async () => {
