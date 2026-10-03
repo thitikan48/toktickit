@@ -13,7 +13,8 @@ import {
 
 interface AttachmentSectionProps {
   ticketId: number;
-  requesterId: number;
+  /** IT Staff and Administrators can view and download, but not add or remove. */
+  readOnly?: boolean;
 }
 
 const MAX_FILE_SIZE = 5_242_880;
@@ -41,7 +42,7 @@ function formatFileSize(bytes: number) {
 
 export default function AttachmentSection({
   ticketId,
-  requesterId,
+  readOnly = false,
 }: AttachmentSectionProps) {
   const [
     attachments,
@@ -114,8 +115,7 @@ export default function AttachmentSection({
     try {
       const data =
         await getAttachments(
-          ticketId,
-          requesterId
+          ticketId
         );
 
       setAttachments(data);
@@ -130,7 +130,7 @@ export default function AttachmentSection({
 
   useEffect(() => {
     void loadAttachments();
-  }, [ticketId, requesterId]);
+  }, [ticketId]);
 
   async function handleFileChange(
     fileList: FileList | null
@@ -180,7 +180,6 @@ export default function AttachmentSection({
       const created =
         await uploadAttachment(
           ticketId,
-          requesterId,
           file
         );
 
@@ -254,7 +253,6 @@ export default function AttachmentSection({
       const updated =
         await removeAttachment(
           attachmentToRemove.id,
-          requesterId,
           trimmedReason
         );
 
@@ -302,13 +300,16 @@ export default function AttachmentSection({
                 /5 active)
               </h2>
 
-              <p className="text-muted small mb-0">
-                Allowed: JPG, PNG,
-                WEBP, PDF • Max
-                5 MB per file
-              </p>
+              {!readOnly && (
+                <p className="text-muted small mb-0">
+                  Allowed: JPG, PNG,
+                  WEBP, PDF • Max
+                  5 MB per file
+                </p>
+              )}
             </div>
 
+            {!readOnly && (
             <div>
               <label
                 htmlFor="addAttachment"
@@ -347,6 +348,7 @@ export default function AttachmentSection({
                 }}
               />
             </div>
+            )}
           </div>
 
           {activeAttachments.length >=
@@ -427,8 +429,7 @@ export default function AttachmentSection({
                           <a
                             className="btn btn-outline-success btn-sm"
                             href={getAttachmentDownloadUrl(
-                              attachment.id,
-                              requesterId
+                              attachment.id
                             )}
                             target="_blank"
                             rel="noreferrer"
@@ -436,17 +437,19 @@ export default function AttachmentSection({
                             Download
                           </a>
 
+                          {!readOnly && (
                           <button
-                            type="button"
-                            className="btn btn-outline-danger btn-sm"
-                            onClick={() =>
-                              openRemoveDialog(
-                                attachment
-                              )
-                            }
-                          >
-                            Remove
-                          </button>
+                              type="button"
+                              className="btn btn-outline-danger btn-sm"
+                              onClick={() =>
+                                openRemoveDialog(
+                                  attachment
+                                )
+                              }
+                            >
+                              Remove
+                            </button>
+                          )}
                         </div>
                       </div>
                     )

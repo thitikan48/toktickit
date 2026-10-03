@@ -1,17 +1,35 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import { getPrisma } from "./prisma.js";
+import { logServerError } from "./log.js";
 import { attachmentRouter } from "./attachments.js";
+import { commentRouter } from "./comments.js";
+import { staffRouter } from "./staff.js";
+import { adminRouter } from "./admin.js";
 import { generateTicketNumber } from "./ticket-number.js";
+import {
+  authRouter,
+  loadUser,
+  requireAuth,
+  requireRole,
+  sessionMiddleware,
+} from "./auth.js";
 
 void getPrisma;
 
 export const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin:
+      process.env.CLIENT_ORIGIN ??
+      "http://localhost:5173",
+    credentials: true,
+  })
+);
 app.use(express.json());
-
-app.use("/api", attachmentRouter);
+app.use(sessionMiddleware);
+app.use(loadUser);
 
 app.get("/api/health", (_req: Request, res: Response) => {
   res.status(200).json({
@@ -19,6 +37,17 @@ app.get("/api/health", (_req: Request, res: Response) => {
     service: "TokTickIT API",
   });
 });
+
+// Login, logout, current user, and change password.
+app.use("/api/auth", authRouter);
+
+// Every other endpoint requires a logged-in user.
+app.use("/api", requireAuth);
+
+app.use("/api", attachmentRouter);
+app.use("/api", commentRouter);
+app.use("/api", staffRouter);
+app.use("/api", adminRouter);
 
 app.get("/api/categories", async (_req: Request, res: Response) => {
   try {
@@ -35,46 +64,13 @@ app.get("/api/categories", async (_req: Request, res: Response) => {
     });
 
     res.status(200).json(categories);
-  } catch {
+  } catch (error) {
+      logServerError(error);
     res.status(500).json({
       error: "Unable to load categories",
     });
   }
 });
-
-app.get(
-  "/api/development-requesters",
-  async (_req: Request, res: Response) => {
-    try {
-      const prisma = getPrisma();
-
-      const requesters =
-        await prisma.requesterUser.findMany({
-          where: {
-            isActive: true,
-          },
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-          orderBy: {
-            id: "asc",
-          },
-        });
-
-      res.status(200).json(requesters);
-    } catch {
-      res.status(500).json({
-        error: {
-          code: "SERVER_ERROR",
-          message:
-            "Unable to load Development Requesters.",
-        },
-      });
-    }
-  }
-);
 
 app.get(
   "/api/related-systems",
@@ -97,7 +93,8 @@ app.get(
         });
 
       return res.status(200).json(relatedSystems);
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res.status(500).json({
         error: {
           code: "SERVER_ERROR",
@@ -114,13 +111,12 @@ app.get(
  */
 app.get(
   "/api/tickets",
+  requireRole("REQUESTER"),
   async (req: Request, res: Response) => {
     try {
       const prisma = getPrisma();
 
-      const requesterId = Number(
-        req.query.requesterId
-      );
+      const requesterId = req.user!.id;
 
       const search =
         typeof req.query.search === "string"
@@ -163,33 +159,7 @@ app.get(
             )
           : 10;
 
-      if (!Number.isInteger(requesterId)) {
-        return res.status(400).json({
-          error: {
-            code: "VALIDATION_ERROR",
-            message:
-              "Requester is required.",
-          },
-        });
-      }
 
-      const requester =
-        await prisma.requesterUser.findFirst({
-          where: {
-            id: requesterId,
-            isActive: true,
-          },
-        });
-
-      if (!requester) {
-        return res.status(404).json({
-          error: {
-            code: "NOT_FOUND",
-            message:
-              "Development Requester was not found.",
-          },
-        });
-      }
 
       const where = {
         requesterId,
@@ -249,6 +219,13 @@ app.get(
                   name: true,
                 },
               },
+
+              owner: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
             },
 
             orderBy:
@@ -285,7 +262,8 @@ app.get(
         totalItems,
         totalPages,
       });
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res.status(500).json({
         error: {
           code: "SERVER_ERROR",
@@ -302,6 +280,7 @@ app.get(
  */
 app.get(
   "/api/tickets/:id",
+  requireRole("REQUESTER"),
   async (req: Request, res: Response) => {
     try {
       const prisma = getPrisma();
@@ -310,40 +289,20 @@ app.get(
         req.params.id
       );
 
-      const requesterId = Number(
-        req.query.requesterId
-      );
+      const requesterId = req.user!.id;
 
       if (
-        !Number.isInteger(ticketId) ||
-        !Number.isInteger(requesterId)
+        !Number.isInteger(ticketId)
       ) {
         return res.status(400).json({
           error: {
             code: "VALIDATION_ERROR",
             message:
-              "Ticket ID and Requester are required.",
+              "Ticket ID is required.",
           },
         });
       }
 
-      const requester =
-        await prisma.requesterUser.findFirst({
-          where: {
-            id: requesterId,
-            isActive: true,
-          },
-        });
-
-      if (!requester) {
-        return res.status(404).json({
-          error: {
-            code: "NOT_FOUND",
-            message:
-              "Development Requester was not found.",
-          },
-        });
-      }
 
       const ticket =
         await prisma.ticket.findUnique({
@@ -365,10 +324,22 @@ app.get(
                 name: true,
               },
             },
+
+            owner: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         });
 
-      if (!ticket) {
+      // Another Requester's ticket gets the same answer as a missing one,
+      // so its existence is not revealed.
+      if (
+        !ticket ||
+        ticket.requesterId !== requesterId
+      ) {
         return res.status(404).json({
           error: {
             code: "NOT_FOUND",
@@ -378,23 +349,11 @@ app.get(
         });
       }
 
-      if (
-        ticket.requesterId !==
-        requesterId
-      ) {
-        return res.status(403).json({
-          error: {
-            code: "FORBIDDEN",
-            message:
-              "You are not authorized to access this resource.",
-          },
-        });
-      }
-
       return res
         .status(200)
         .json(ticket);
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res.status(500).json({
         error: {
           code: "SERVER_ERROR",
@@ -411,12 +370,14 @@ app.get(
  */
 app.post(
   "/api/tickets",
+  requireRole("REQUESTER"),
   async (req: Request, res: Response) => {
     try {
       const prisma = getPrisma();
 
+      const requesterId = req.user!.id;
+
       const {
-        requesterId,
         categoryId,
         relatedSystemId,
         summary,
@@ -468,14 +429,6 @@ app.post(
           "Requested Priority must be LOW, MEDIUM, or HIGH.";
       }
 
-      if (
-        !Number.isInteger(
-          requesterId
-        )
-      ) {
-        fields.requesterId =
-          "Requester is required.";
-      }
 
       if (
         !Number.isInteger(
@@ -510,23 +463,6 @@ app.post(
         });
       }
 
-      const requester =
-        await prisma.requesterUser.findFirst({
-          where: {
-            id: requesterId,
-            isActive: true,
-          },
-        });
-
-      if (!requester) {
-        return res.status(404).json({
-          error: {
-            code: "NOT_FOUND",
-            message:
-              "Development Requester was not found.",
-          },
-        });
-      }
 
       const category =
         await prisma.category.findUnique({
@@ -595,13 +531,15 @@ app.post(
             description:
               trimmedDescription,
             requestedPriority,
+            itPriority: requestedPriority,
           },
         });
 
       return res
         .status(201)
         .json(ticket);
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res.status(500).json({
         error: {
           code: "SERVER_ERROR",

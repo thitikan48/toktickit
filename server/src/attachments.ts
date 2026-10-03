@@ -8,6 +8,8 @@ import {
   writeFile,
 } from "fs/promises";
 import { getPrisma } from "./prisma.js";
+import { logServerError } from "./log.js";
+import { requireRole } from "./auth.js";
 
 const MAX_FILE_SIZE = 5_242_880;
 const MAX_ACTIVE_ATTACHMENTS = 5;
@@ -58,16 +60,6 @@ function validationError(
   };
 }
 
-function forbiddenError() {
-  return {
-    error: {
-      code: "FORBIDDEN",
-      message:
-        "You are not authorized to access this resource.",
-    },
-  };
-}
-
 function notFoundError(
   message: string
 ) {
@@ -96,9 +88,7 @@ attachmentRouter.get(
         Number(req.params.id);
 
       const requesterId =
-        Number(
-          req.query.requesterId
-        );
+        req.user!.id;
 
       if (
         !Number.isInteger(ticketId) ||
@@ -135,14 +125,18 @@ attachmentRouter.get(
           );
       }
 
+      // IT Staff and Administrators may read any ticket's files.
       if (
+        req.user!.role === "REQUESTER" &&
         ticket.requesterId !==
-        requesterId
+          requesterId
       ) {
         return res
-          .status(403)
+          .status(404)
           .json(
-            forbiddenError()
+            notFoundError(
+              "Ticket was not found."
+            )
           );
       }
 
@@ -172,7 +166,8 @@ attachmentRouter.get(
       return res
         .status(200)
         .json(attachments);
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res
         .status(500)
         .json({
@@ -191,6 +186,7 @@ attachmentRouter.get(
  */
 attachmentRouter.post(
   "/tickets/:id/attachments",
+  requireRole("REQUESTER"),
 
   (req, res, next) => {
     upload.single("file")(
@@ -255,9 +251,7 @@ attachmentRouter.post(
         Number(req.params.id);
 
       const requesterId =
-        Number(
-          req.body.requesterId
-        );
+        req.user!.id;
 
       if (
         !Number.isInteger(ticketId) ||
@@ -309,9 +303,11 @@ attachmentRouter.post(
         requesterId
       ) {
         return res
-          .status(403)
+          .status(404)
           .json(
-            forbiddenError()
+            notFoundError(
+              "Ticket was not found."
+            )
           );
       }
 
@@ -394,7 +390,8 @@ attachmentRouter.post(
       return res
         .status(201)
         .json(attachment);
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res
         .status(500)
         .json({
@@ -422,9 +419,7 @@ attachmentRouter.get(
         Number(req.params.id);
 
       const requesterId =
-        Number(
-          req.query.requesterId
-        );
+        req.user!.id;
 
       if (
         !Number.isInteger(
@@ -469,14 +464,17 @@ attachmentRouter.get(
       }
 
       if (
+        req.user!.role === "REQUESTER" &&
         attachment.ticket
           .requesterId !==
-        requesterId
+          requesterId
       ) {
         return res
-          .status(403)
+          .status(404)
           .json(
-            forbiddenError()
+            notFoundError(
+              "Attachment was not found."
+            )
           );
       }
 
@@ -530,7 +528,8 @@ attachmentRouter.get(
       return res
         .status(200)
         .send(file);
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res
         .status(500)
         .json({
@@ -554,6 +553,7 @@ attachmentRouter.get(
  */
 attachmentRouter.delete(
   "/attachments/:id",
+  requireRole("REQUESTER"),
   async (req, res) => {
     try {
       const prisma =
@@ -563,9 +563,7 @@ attachmentRouter.delete(
         Number(req.params.id);
 
       const requesterId =
-        Number(
-          req.body.requesterId
-        );
+        req.user!.id;
 
       const removalReason =
         typeof req.body
@@ -622,9 +620,11 @@ attachmentRouter.delete(
         requesterId
       ) {
         return res
-          .status(403)
+          .status(404)
           .json(
-            forbiddenError()
+            notFoundError(
+              "Attachment was not found."
+            )
           );
       }
 
@@ -682,7 +682,8 @@ attachmentRouter.delete(
         .json(
           removedAttachment
         );
-    } catch {
+    } catch (error) {
+      logServerError(error);
       return res
         .status(500)
         .json({

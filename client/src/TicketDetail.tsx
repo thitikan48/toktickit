@@ -4,13 +4,24 @@ import {
 } from "react";
 import {
   getTicketById,
+  markAppearsResolved,
   TicketDetail as TicketDetailData,
 } from "./api.js";
 import AttachmentSection from "./AttachmentSection.js";
+import CommentSection from "./CommentSection.js";
+import StatusBadge, { statusLabel } from "./StatusBadge.js";
+
+const PRIORITY_LABELS = {
+  LOW: "Low",
+  MEDIUM: "Medium",
+  HIGH: "High",
+} as const;
+
+// "Problem Appears Resolved" no longer applies once the ticket is finished.
+const FINISHED = ["RESOLVED", "CLOSED", "CANCELLED"];
 
 interface TicketDetailProps {
   ticketId: number;
-  requesterId: number;
   requesterName: string;
   onBack: () => void;
 }
@@ -22,7 +33,6 @@ type DetailState =
 
 export default function TicketDetail({
   ticketId,
-  requesterId,
   requesterName,
   onBack,
 }: TicketDetailProps) {
@@ -34,6 +44,37 @@ export default function TicketDetail({
   const [state, setState] =
     useState<DetailState>("loading");
 
+  const [resolving, setResolving] =
+    useState(false);
+
+  const [resolveError, setResolveError] =
+    useState("");
+
+  async function handleAppearsResolved() {
+    setResolving(true);
+    setResolveError("");
+
+    try {
+      await markAppearsResolved(ticketId);
+
+      // The status does not change; only the flag shown to IT Staff.
+      setTicket((current) =>
+        current
+          ? {
+              ...current,
+              requesterMarkedResolved: true,
+            }
+          : current
+      );
+    } catch {
+      setResolveError(
+        "Unable to send your update. Please try again."
+      );
+    } finally {
+      setResolving(false);
+    }
+  }
+
   useEffect(() => {
     let cancelled = false;
 
@@ -43,8 +84,7 @@ export default function TicketDetail({
       try {
         const data =
           await getTicketById(
-            ticketId,
-            requesterId
+            ticketId
           );
 
         if (cancelled) {
@@ -68,10 +108,7 @@ export default function TicketDetail({
     return () => {
       cancelled = true;
     };
-  }, [
-    ticketId,
-    requesterId,
-  ]);
+  }, [ticketId]);
 
   if (state === "loading") {
     return (
@@ -178,16 +215,12 @@ export default function TicketDetail({
           </p>
         </div>
 
-        <span
-          className="badge px-3 py-2"
-          style={{
-            backgroundColor:
-              "#EAF6EF",
-            color: "#006B3C",
-          }}
-        >
-          New
-        </span>
+        <StatusBadge
+          className="px-3 py-2"
+          status={
+            ticket.currentStatus
+          }
+        />
       </div>
 
       <div className="card shadow-sm mb-4">
@@ -213,7 +246,9 @@ export default function TicketDetail({
               </p>
 
               <p className="fw-semibold mb-0">
-                New
+                {statusLabel(
+                  ticket.currentStatus
+                )}
               </p>
             </div>
 
@@ -257,6 +292,32 @@ export default function TicketDetail({
                       "MEDIUM"
                     ? "Medium"
                     : "High"}
+              </p>
+            </div>
+
+            <div className="col-12 col-md-6">
+              <p className="text-muted small mb-1">
+                IT Priority
+              </p>
+
+              <p className="fw-semibold mb-0">
+                {
+                  PRIORITY_LABELS[
+                    ticket.itPriority
+                  ]
+                }
+              </p>
+            </div>
+
+            <div className="col-12 col-md-6">
+              <p className="text-muted small mb-1">
+                Assigned To
+              </p>
+
+              <p className="fw-semibold mb-0">
+                {ticket.owner
+                  ? ticket.owner.name
+                  : "Not assigned yet"}
               </p>
             </div>
 
@@ -325,9 +386,70 @@ export default function TicketDetail({
         </p>
       </div>
 
+      {!FINISHED.includes(
+        ticket.currentStatus
+      ) && (
+        <div className="card shadow-sm mt-4">
+          <div className="card-body p-4">
+            {ticket.requesterMarkedResolved ? (
+              <p
+                className="mb-0"
+                role="status"
+                style={{
+                  color: "#006B3C",
+                }}
+              >
+                You told IT this appears
+                resolved. IT Staff will
+                confirm and close the
+                ticket.
+              </p>
+            ) : (
+              <>
+                <h2 className="h5 mb-2">
+                  Is the problem solved?
+                </h2>
+
+                <p className="text-muted">
+                  Let IT know the problem
+                  appears resolved. IT
+                  Staff will confirm and
+                  close the ticket.
+                </p>
+
+                {resolveError && (
+                  <div
+                    className="alert alert-danger"
+                    role="alert"
+                  >
+                    {resolveError}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  className="btn btn-outline-success"
+                  disabled={resolving}
+                  onClick={() =>
+                    void handleAppearsResolved()
+                  }
+                >
+                  {resolving
+                    ? "Sending…"
+                    : "Problem Appears Resolved"}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      <CommentSection
+        ticketId={ticket.id}
+      />
+
       <AttachmentSection
         ticketId={ticket.id}
-        requesterId={requesterId}
       />
     </section>
   );

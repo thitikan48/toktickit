@@ -2,6 +2,164 @@ const API_URL =
   import.meta.env.VITE_API_URL ??
   "http://localhost:3000";
 
+/*
+ * Every request sends the session cookie. A 401 on a protected request
+ * (the session expired or the user was deactivated) is reported once so the
+ * app can return to the Login screen.
+ */
+let unauthorizedHandler: (() => void) | null = null;
+
+export function setUnauthorizedHandler(
+  handler: (() => void) | null
+) {
+  unauthorizedHandler = handler;
+}
+
+async function apiFetch(
+  url: string,
+  init: RequestInit = {}
+): Promise<Response> {
+  const response = await fetch(url, {
+    ...init,
+    credentials: "include",
+  });
+
+  if (
+    response.status === 401 &&
+    !url.includes("/api/auth/")
+  ) {
+    unauthorizedHandler?.();
+  }
+
+  return response;
+}
+
+export class ApiError extends Error {
+  status: number;
+  code: string;
+  fields: Record<string, string>;
+
+  constructor(
+    status: number,
+    code: string,
+    message: string,
+    fields: Record<string, string> = {}
+  ) {
+    super(message);
+    this.status = status;
+    this.code = code;
+    this.fields = fields;
+  }
+}
+
+async function readError(
+  response: Response,
+  fallback: string
+): Promise<ApiError> {
+  const body = await response
+    .json()
+    .catch(() => null);
+
+  return new ApiError(
+    response.status,
+    body?.error?.code ?? "SERVER_ERROR",
+    body?.error?.message ?? fallback,
+    body?.error?.fields ?? {}
+  );
+}
+
+export type UserRole =
+  | "REQUESTER"
+  | "IT_STAFF"
+  | "ADMIN";
+
+export interface AuthUser {
+  id: number;
+  name: string;
+  email: string;
+  role: UserRole;
+  mustChangePassword: boolean;
+}
+
+export async function login(
+  email: string,
+  password: string
+): Promise<AuthUser> {
+  const response = await apiFetch(
+    `${API_URL}/api/auth/login`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, password }),
+    }
+  );
+
+  if (!response.ok) {
+    throw await readError(
+      response,
+      "Unable to log in"
+    );
+  }
+
+  return (await response.json()).user;
+}
+
+export async function logout(): Promise<void> {
+  await apiFetch(`${API_URL}/api/auth/logout`, {
+    method: "POST",
+  });
+}
+
+/** Returns the logged-in user, or null when there is no session. */
+export async function getCurrentUser(): Promise<AuthUser | null> {
+  const response = await apiFetch(
+    `${API_URL}/api/auth/me`
+  );
+
+  if (response.status === 401) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw await readError(
+      response,
+      "Unable to load the current user"
+    );
+  }
+
+  return (await response.json()).user;
+}
+
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string
+): Promise<AuthUser> {
+  const response = await apiFetch(
+    `${API_URL}/api/auth/change-password`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        currentPassword,
+        newPassword,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    throw await readError(
+      response,
+      "Unable to change the password"
+    );
+  }
+
+  return (await response.json()).user;
+}
+
 export interface Category {
   id: number;
   name: string;
@@ -13,7 +171,7 @@ export interface SystemStatus {
 }
 
 export async function checkSystem(): Promise<SystemStatus> {
-  const healthResponse = await fetch(
+  const healthResponse = await apiFetch(
     `${API_URL}/api/health`
   );
 
@@ -25,7 +183,7 @@ export async function checkSystem(): Promise<SystemStatus> {
 
   await healthResponse.json();
 
-  const categoriesResponse = await fetch(
+  const categoriesResponse = await apiFetch(
     `${API_URL}/api/categories`
   );
 
@@ -44,28 +202,6 @@ export async function checkSystem(): Promise<SystemStatus> {
   };
 }
 
-export interface DevelopmentRequester {
-  id: number;
-  name: string;
-  email: string;
-}
-
-export async function getDevelopmentRequesters(): Promise<
-  DevelopmentRequester[]
-> {
-  const response = await fetch(
-    `${API_URL}/api/development-requesters`
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      "Unable to load Development Requesters"
-    );
-  }
-
-  return response.json();
-}
-
 export interface RelatedSystem {
   id: number;
   name: string;
@@ -74,7 +210,7 @@ export interface RelatedSystem {
 export async function getCategories(): Promise<
   Category[]
 > {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_URL}/api/categories`
   );
 
@@ -90,7 +226,7 @@ export async function getCategories(): Promise<
 export async function getRelatedSystems(): Promise<
   RelatedSystem[]
 > {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_URL}/api/related-systems`
   );
 
@@ -103,13 +239,22 @@ export async function getRelatedSystems(): Promise<
   return response.json();
 }
 
+export type TicketStatus =
+  | "NEW"
+  | "OPEN"
+  | "IN_PROGRESS"
+  | "WAITING_FOR_REQUESTER"
+  | "RESOLVED"
+  | "CLOSED"
+  | "REOPENED"
+  | "CANCELLED";
+
 export type RequestedPriority =
   | "LOW"
   | "MEDIUM"
   | "HIGH";
 
 export interface CreateTicketInput {
-  requesterId: number;
   categoryId: number;
   relatedSystemId: number;
   summary: string;
@@ -126,7 +271,7 @@ export interface CreatedTicket {
   summary: string;
   description: string;
   requestedPriority: RequestedPriority;
-  currentStatus: "NEW";
+  currentStatus: TicketStatus;
   createdAt: string;
   updatedAt: string;
 }
@@ -134,7 +279,7 @@ export interface CreatedTicket {
 export async function createTicket(
   input: CreateTicketInput
 ): Promise<CreatedTicket> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_URL}/api/tickets`,
     {
       method: "POST",
@@ -163,9 +308,16 @@ export interface TicketListItem {
   summary: string;
   description: string;
   requestedPriority: RequestedPriority;
-  currentStatus: "NEW";
+  itPriority: RequestedPriority;
+  currentStatus: TicketStatus;
+  requesterMarkedResolved: boolean;
   createdAt: string;
   updatedAt: string;
+
+  owner: {
+    id: number;
+    name: string;
+  } | null;
 
   category: {
     id: number;
@@ -193,7 +345,6 @@ export interface TicketListResponse {
 }
 
 export interface GetTicketsParams {
-  requesterId: number;
   search?: string;
   status?: string;
   categoryId?: number;
@@ -209,11 +360,6 @@ export async function getTickets(
   params: GetTicketsParams
 ): Promise<TicketListResponse> {
   const query = new URLSearchParams();
-
-  query.set(
-    "requesterId",
-    String(params.requesterId)
-  );
 
   if (params.search) {
     query.set(
@@ -264,7 +410,7 @@ export async function getTickets(
     );
   }
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_URL}/api/tickets?${query.toString()}`
   );
 
@@ -281,18 +427,10 @@ export async function getTickets(
  * Issue 5: Load one owned Ticket
  */
 export async function getTicketById(
-  ticketId: number,
-  requesterId: number
+  ticketId: number
 ): Promise<TicketDetail> {
-  const query = new URLSearchParams();
-
-  query.set(
-    "requesterId",
-    String(requesterId)
-  );
-
-  const response = await fetch(
-    `${API_URL}/api/tickets/${ticketId}?${query.toString()}`
+  const response = await apiFetch(
+    `${API_URL}/api/tickets/${ticketId}`
   );
 
   if (!response.ok) {
@@ -321,20 +459,11 @@ export interface Attachment {
 }
 
 export async function getAttachments(
-  ticketId: number,
-  requesterId: number
+  ticketId: number
 ): Promise<Attachment[]> {
-  const query =
-    new URLSearchParams();
-
-  query.set(
-    "requesterId",
-    String(requesterId)
-  );
-
   const response =
-    await fetch(
-      `${API_URL}/api/tickets/${ticketId}/attachments?${query.toString()}`
+    await apiFetch(
+      `${API_URL}/api/tickets/${ticketId}/attachments`
     );
 
   if (!response.ok) {
@@ -348,16 +477,10 @@ export async function getAttachments(
 
 export async function uploadAttachment(
   ticketId: number,
-  requesterId: number,
   file: File
 ): Promise<Attachment> {
   const formData =
     new FormData();
-
-  formData.append(
-    "requesterId",
-    String(requesterId)
-  );
 
   formData.append(
     "file",
@@ -365,7 +488,7 @@ export async function uploadAttachment(
   );
 
   const response =
-    await fetch(
+    await apiFetch(
       `${API_URL}/api/tickets/${ticketId}/attachments`,
       {
         method: "POST",
@@ -390,11 +513,10 @@ export async function uploadAttachment(
 
 export async function removeAttachment(
   attachmentId: number,
-  requesterId: number,
   removalReason: string
 ): Promise<Attachment> {
   const response =
-    await fetch(
+    await apiFetch(
       `${API_URL}/api/attachments/${attachmentId}`,
       {
         method: "DELETE",
@@ -405,7 +527,6 @@ export async function removeAttachment(
         },
 
         body: JSON.stringify({
-          requesterId,
           removalReason,
         }),
       }
@@ -427,16 +548,350 @@ export async function removeAttachment(
 }
 
 export function getAttachmentDownloadUrl(
-  attachmentId: number,
-  requesterId: number
+  attachmentId: number
 ) {
-  const query =
-    new URLSearchParams();
+  return `${API_URL}/api/attachments/${attachmentId}/download`;
+}
 
-  query.set(
-    "requesterId",
-    String(requesterId)
+/*
+ * Public Comments and "Problem Appears Resolved"
+ */
+export interface TicketComment {
+  id: number;
+  body: string;
+  createdAt: string;
+  author: {
+    id: number;
+    name: string;
+    role: UserRole;
+  };
+}
+
+export async function getComments(
+  ticketId: number
+): Promise<TicketComment[]> {
+  const response = await apiFetch(
+    `${API_URL}/api/tickets/${ticketId}/comments`
   );
 
-  return `${API_URL}/api/attachments/${attachmentId}/download?${query.toString()}`;
+  if (!response.ok) {
+    throw await readError(
+      response,
+      "Unable to load comments"
+    );
+  }
+
+  return (await response.json()).items;
+}
+
+export async function postComment(
+  ticketId: number,
+  body: string
+): Promise<TicketComment> {
+  const response = await apiFetch(
+    `${API_URL}/api/tickets/${ticketId}/comments`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ body }),
+    }
+  );
+
+  if (!response.ok) {
+    throw await readError(
+      response,
+      "Unable to post the comment"
+    );
+  }
+
+  return response.json();
+}
+
+export async function markAppearsResolved(
+  ticketId: number
+): Promise<void> {
+  const response = await apiFetch(
+    `${API_URL}/api/tickets/${ticketId}/appears-resolved`,
+    { method: "POST" }
+  );
+
+  if (!response.ok) {
+    throw await readError(
+      response,
+      "Unable to send your update"
+    );
+  }
+}
+
+/*
+ * IT Staff: Ticket Queue, Ticket Detail, ownership, priority, status
+ */
+export interface StaffTicketListItem {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  requestedPriority: RequestedPriority;
+  itPriority: RequestedPriority;
+  currentStatus: TicketStatus;
+  requesterMarkedResolved: boolean;
+  createdAt: string;
+  updatedAt: string;
+  category: { id: number; name: string };
+  requester: { id: number; name: string };
+  owner: { id: number; name: string } | null;
+}
+
+export interface StaffTicketListResponse {
+  items: StaffTicketListItem[];
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+}
+
+export interface StaffTicketsParams {
+  search?: string;
+  status?: string;
+  itPriority?: string;
+  categoryId?: number;
+  /** A user id, or "unassigned". */
+  ownerId?: number | "unassigned";
+  sort?: "createdAt" | "updatedAt" | "itPriority";
+  direction?: "asc" | "desc";
+  page?: number;
+}
+
+export async function getStaffTickets(
+  params: StaffTicketsParams
+): Promise<StaffTicketListResponse> {
+  const query = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== "") {
+      query.set(key, String(value));
+    }
+  }
+
+  const response = await apiFetch(
+    `${API_URL}/api/staff/tickets?${query.toString()}`
+  );
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to load the ticket queue");
+  }
+
+  return response.json();
+}
+
+export interface StaffTicketDetail {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  description: string;
+  requestedPriority: RequestedPriority;
+  itPriority: RequestedPriority;
+  currentStatus: TicketStatus;
+  requesterMarkedResolved: boolean;
+  createdAt: string;
+  updatedAt: string;
+  requester: { id: number; name: string; email: string };
+  category: { id: number; name: string };
+  relatedSystem: { id: number; name: string };
+  owner: { id: number; name: string } | null;
+}
+
+export async function getStaffTicket(
+  ticketId: number
+): Promise<StaffTicketDetail> {
+  const response = await apiFetch(
+    `${API_URL}/api/staff/tickets/${ticketId}`
+  );
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to load the ticket");
+  }
+
+  return response.json();
+}
+
+export interface Assignee {
+  id: number;
+  name: string;
+  role: UserRole;
+}
+
+export async function getAssignees(): Promise<Assignee[]> {
+  const response = await apiFetch(`${API_URL}/api/staff/assignees`);
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to load the staff list");
+  }
+
+  return (await response.json()).items;
+}
+
+export async function updateTicket(
+  ticketId: number,
+  changes: { ownerId?: number | null; itPriority?: RequestedPriority }
+): Promise<void> {
+  const response = await apiFetch(
+    `${API_URL}/api/staff/tickets/${ticketId}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(changes),
+    }
+  );
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to save the change");
+  }
+}
+
+export async function changeStatus(
+  ticketId: number,
+  status: TicketStatus,
+  confirm: boolean
+): Promise<void> {
+  const response = await apiFetch(
+    `${API_URL}/api/staff/tickets/${ticketId}/status`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status, confirm }),
+    }
+  );
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to change the status");
+  }
+}
+
+export async function getInternalNotes(
+  ticketId: number
+): Promise<TicketComment[]> {
+  const response = await apiFetch(
+    `${API_URL}/api/tickets/${ticketId}/internal-notes`
+  );
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to load the notes");
+  }
+
+  return (await response.json()).items;
+}
+
+export async function postInternalNote(
+  ticketId: number,
+  body: string
+): Promise<TicketComment> {
+  const response = await apiFetch(
+    `${API_URL}/api/tickets/${ticketId}/internal-notes`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ body }),
+    }
+  );
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to add the note");
+  }
+
+  return response.json();
+}
+
+/*
+ * Administrator: User Management
+ */
+export interface AdminUser {
+  id: number;
+  name: string;
+  email: string;
+  role: UserRole;
+  isActive: boolean;
+  mustChangePassword: boolean;
+}
+
+export async function getUsers(params: {
+  search?: string;
+  role?: UserRole | "";
+}): Promise<AdminUser[]> {
+  const query = new URLSearchParams();
+
+  if (params.search) query.set("search", params.search);
+  if (params.role) query.set("role", params.role);
+
+  const response = await apiFetch(
+    `${API_URL}/api/admin/users?${query.toString()}`
+  );
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to load users");
+  }
+
+  return (await response.json()).items;
+}
+
+export interface UserInput {
+  name: string;
+  email: string;
+  role: UserRole;
+  isActive: boolean;
+}
+
+export async function createUser(
+  input: UserInput & { initialPassword: string }
+): Promise<AdminUser> {
+  const response = await apiFetch(`${API_URL}/api/admin/users`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to create the user");
+  }
+
+  return response.json();
+}
+
+export async function updateUser(
+  userId: number,
+  changes: Partial<UserInput>
+): Promise<AdminUser> {
+  const response = await apiFetch(
+    `${API_URL}/api/admin/users/${userId}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(changes),
+    }
+  );
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to save the user");
+  }
+
+  return response.json();
+}
+
+export async function setInitialPassword(
+  userId: number,
+  initialPassword: string
+): Promise<void> {
+  const response = await apiFetch(
+    `${API_URL}/api/admin/users/${userId}/initial-password`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ initialPassword }),
+    }
+  );
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to set the password");
+  }
 }
