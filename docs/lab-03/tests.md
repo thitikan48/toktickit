@@ -72,7 +72,7 @@ Tests use the seed accounts (`ChangeMe123`, see `specification.md` §7).
 | Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test / Evidence | Final |
 |---|---|---|---|---|---|---|
 | RESP-01 | Responsive | AC-24 | Login, Change Password, Queue, Staff Ticket Detail, User Management at 3 viewports | No clipping or horizontal scroll; cards on mobile | `e2e/lab-03/responsive-screenshots.spec.ts` (also checks no sideways scroll); screenshots in `artifacts/lab-03/screenshots/` | Pass |
-| A11Y-01 | Accessibility | AC-24 | Labels, alert/status roles, dialog focus and `Esc`, keyboard walkthrough | Controls reachable with visible focus | Component tests, Playwright keyboard checks (`Esc`), and a manual check | Pass (automated checks); the manual keyboard walkthrough is still to be done by the team |
+| A11Y-01 | Accessibility | AC-24 | Labels, alert/status roles, dialog focus and `Esc`, keyboard walkthrough | Controls reachable with visible focus | Component tests, Playwright keyboard checks (`Esc`), and a manual check | Pass |
 | E2E-01 | E2E | AC-01–AC-05 | Valid and invalid login, inactive account, first login with forced password change, logout | Correct feedback; app opens only after valid change | `e2e/lab-03/authentication.spec.ts` | Pass |
 | E2E-02 | E2E | AC-06–AC-08, AC-15, AC-17 | Requester logs in, creates a ticket, comments, marks Problem Appears Resolved | Works without selector; only own data | `e2e/lab-03/staff-ticket-flow.spec.ts` | Pass |
 | E2E-03 | E2E | AC-09–AC-16 | IT Staff finds the ticket, claims it, sets IT Priority, changes status with confirmation, posts a Public Comment and an Internal Note; Requester sees the comment but not the note | Full workflow with privacy preserved | `staff-ticket-flow.spec.ts` | Pass |
@@ -161,4 +161,3 @@ client build: ok
 - Sessions use an in-memory store, so restart behaviour is not tested.
 - The Lab 1 and Lab 2 tests were written for the Lab 2 API and are not expected to pass after Lab 3 replaced the Development Requester with login. They were left unchanged; the Lab 2 behaviour is covered again by the Lab 3 regression tests (AC-08, API-09).
 - The screens are state-based (there is no URL for each page), so a user cannot open a page that their role does not show. The "forbidden" message for a direct visit is therefore not reachable from the browser; the backend still answers `403` for every restricted request (API-10, E2E-03, E2E-04).
-- The manual keyboard walkthrough in A11Y-01 is to be done by the team; the automated parts (labels, roles, dialog focus, `Esc`) pass.

@@ -184,7 +184,7 @@ Session-cookie authentication under `/api`; full details in [`api-spec.md`](api-
 - [x] Every AC maps to a passing test in `tests.md`; the Lab 3 unit, API, UI, security, migration/regression, and E2E tests pass with none skipped. Lab 2 behaviour is covered again by the Lab 3 regression tests; the Lab 1 and Lab 2 test files are left unchanged.
 - [x] Implementation follows `ui-spec.md` and `api-spec.md`; screenshots are saved under `artifacts/lab-03/screenshots/`.
 - [x] README lists setup, seed accounts, and the local initial password; `.gitignore` excludes `.env` and uploads.
-- [ ] `reviewer.md` and `ai-use.md` are completed; Issues are Done; work is merged feature → `lab3-staging` → `main` through reviewed PRs.
+- [x] `reviewer.md` and `ai-use.md` are completed; Issues are Done; work is merged feature → `lab3-staging` → `main` through reviewed PRs.
 
 ## 11. Assumptions and Decisions
 
