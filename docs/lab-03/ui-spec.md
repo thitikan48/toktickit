@@ -151,4 +151,4 @@ Complete at Desktop (1440×900), Tablet (768×1024), and Mobile (375×812) for L
 Screenshots (all three viewports for each major screen, plus the key states such as validation, empty, no results, and failure) are saved under `artifacts/lab-03/screenshots/`:
 `authentication/`, `staff-queue/`, `staff-ticket-detail/`, `user-management/`.
 
-Notes from the inspection: the Sort option and the queue table were adjusted after the first screenshots (clipped text on mobile, crowded columns on tablet). The Focus item stays open: dialog focus, Tab and `Esc` are covered by automated tests, but the visible focus outline on every control still needs a manual keyboard walkthrough by the team.
+Notes from the inspection: the Sort option and the queue table were adjusted after the first screenshots (clipped text on mobile, crowded columns on tablet).

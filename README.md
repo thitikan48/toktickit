@@ -33,6 +33,7 @@ toktickit/
 │   ├── lab-02/
 │   └── lab-03/
 ├── artifacts/
+│   ├── lab-02/screenshots/
 │   └── lab-03/screenshots/
 ├── docs/
 │   ├── lab-01/
