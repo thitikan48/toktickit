@@ -8,6 +8,10 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: "./tests/setup.ts",
-    include: ["tests/**/*.test.tsx"],
+    // `npm test` runs the Lab 4 component tests.
+    include: ["tests/lab-04/**/*.test.tsx"],
+    // Some component tests click through several screens; the 5 second
+    // default is too short when many test files run at once.
+    testTimeout: 20_000,
   },
 });

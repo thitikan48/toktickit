@@ -1,7 +1,14 @@
+import path from "path";
 import { defineConfig } from "@playwright/test";
+import { readTestDatabaseUrl } from "./server/tests/test-database.js";
+
+// E2E uses the test database (server/.env.test), never the development one.
+// Setting it here covers both the API server below and the tests that use
+// Prisma directly.
+process.env.DATABASE_URL = readTestDatabaseUrl(path.resolve("server"));
 
 export default defineConfig({
-  testDir: "./e2e/lab-03",
+  testDir: "./e2e/lab-04",
 
   timeout: 60_000,
 
@@ -22,9 +29,14 @@ export default defineConfig({
 
   webServer: [
     {
-      command: "npm --prefix server run dev",
+      // Bring the test database up to date, seed it, and start the API on it.
+      command:
+        "cd server && npx prisma migrate deploy && npm run prisma:seed && npm run dev",
       url: "http://localhost:3000/api/health",
-      reuseExistingServer: true,
+      env: { DATABASE_URL: process.env.DATABASE_URL },
+      // A server that is already running may use the development database,
+      // so it is never reused.
+      reuseExistingServer: false,
       timeout: 120_000,
     },
     {
