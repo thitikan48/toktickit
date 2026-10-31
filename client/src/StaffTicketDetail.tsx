@@ -11,6 +11,7 @@ import {
   getStaffTicket,
   updateTicket,
 } from "./api.js";
+import ActionsTaken from "./ActionsTaken.js";
 import AttachmentSection from "./AttachmentSection.js";
 import CommentSection from "./CommentSection.js";
 import Dialog from "./Dialog.js";
@@ -404,6 +405,8 @@ export default function StaffTicketDetail({
           </div>
         </div>
       </div>
+
+      <ActionsTaken ticketId={current.id} mode="staff" currentUserId={currentUser.id} />
 
       <AttachmentSection ticketId={current.id} readOnly />
 
