@@ -78,6 +78,32 @@ const tickets: SeedTicket[] = [
   { number: "TKT-2026-900013", requester: "jennifer.anderson@example.com", category: "Hardware", system: "Corporate Laptop", summary: "Laptop keyboard key stuck", description: "The letter E key sticks and repeats characters.", requestedPriority: "LOW", itPriority: "LOW", status: "RESOLVED", owner: "elena.rossi@example.com", comment: ["elena.rossi@example.com", "The keyboard was replaced. Please confirm it works."] },
 ];
 
+// Lab 4 Actions Taken (specification section 7.4). The Ticket Owner creates
+// each action; Completed actions were performed by their assignee.
+type ActionStatus = "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+
+interface SeedAction {
+  ticket: string;
+  description: string;
+  status: ActionStatus;
+  assignee: string;
+  result?: string;
+  followUpNote?: string;
+  attachmentNotes?: string;
+}
+
+const actions: SeedAction[] = [
+  { ticket: "TKT-2026-900002", description: "Clean the printer paper-path sensor.", status: "PLANNED", assignee: "priya.nair@example.com" },
+  { ticket: "TKT-2026-900003", description: "Checked the mail server log for failed sign-ins.", status: "COMPLETED", assignee: "marcus.chen@example.com", result: "The account was locked after too many failed sign-ins." },
+  { ticket: "TKT-2026-900003", description: "Reset the multi-factor enrolment for the mail account.", status: "IN_PROGRESS", assignee: "marcus.chen@example.com" },
+  { ticket: "TKT-2026-900003", description: "Replace the authenticator app on the user's phone.", status: "CANCELLED", assignee: "marcus.chen@example.com" },
+  { ticket: "TKT-2026-900004", description: "Reinstalled the LEB2 app on a test phone.", status: "COMPLETED", assignee: "elena.rossi@example.com", result: "The app opens normally on the test phone.", followUpNote: "Ask the Requester which app version they use." },
+  { ticket: "TKT-2026-900006", description: "Replaced the laptop battery.", status: "COMPLETED", assignee: "priya.nair@example.com", result: "The battery now lasts more than six hours." },
+  { ticket: "TKT-2026-900006", description: "Order a spare battery.", status: "CANCELLED", assignee: "priya.nair@example.com" },
+  { ticket: "TKT-2026-900007", description: "Check the grade upload server logs.", status: "PLANNED", assignee: "marcus.chen@example.com" },
+  { ticket: "TKT-2026-900013", description: "Replaced the laptop keyboard.", status: "COMPLETED", assignee: "elena.rossi@example.com", result: "All keys work.", attachmentNotes: "See keyboard-before.jpg in the ticket attachments." },
+];
+
 async function seedUsers() {
   const prisma = getPrisma();
   const initialHash = await bcrypt.hash(INITIAL_PASSWORD, 12);
@@ -189,6 +215,63 @@ async function seedTickets() {
   }
 }
 
+async function seedActions() {
+  const prisma = getPrisma();
+  const now = new Date();
+
+  const userIds = new Map(
+    (await prisma.user.findMany()).map((u) => [u.email, u.id])
+  );
+
+  for (const t of tickets) {
+    const list = actions.filter((a) => a.ticket === t.number);
+    if (list.length === 0) continue;
+
+    const ticket = await prisma.ticket.findUnique({
+      where: { ticketNumber: t.number },
+    });
+    if (!ticket) continue;
+
+    const ownerId = userIds.get(t.owner!)!;
+
+    // Action times are spread between the Ticket's creation and now.
+    const step = (now.getTime() - ticket.createdAt.getTime()) / (list.length + 1);
+
+    for (const [index, a] of list.entries()) {
+      // Idempotent: an action is found by its Ticket and description.
+      const existing = await prisma.actionTaken.findFirst({
+        where: { ticketId: ticket.id, description: a.description },
+      });
+      if (existing) continue;
+
+      const assigneeId = userIds.get(a.assignee)!;
+
+      await prisma.actionTaken.create({
+        data: {
+          ticketId: ticket.id,
+          actionAt: new Date(ticket.createdAt.getTime() + step * (index + 1)),
+          description: a.description,
+          result: a.result ?? null,
+          status: a.status,
+          assignedToId: assigneeId,
+          performedById: a.status === "COMPLETED" ? assigneeId : null,
+          followUpRequired: a.followUpNote !== undefined,
+          followUpNote: a.followUpNote ?? null,
+          attachmentNotes: a.attachmentNotes ?? null,
+          createdById: ownerId,
+          updatedById: ownerId,
+        },
+      });
+    }
+  }
+
+  // One recently resolved Ticket for the Requester Dashboard demo.
+  await prisma.ticket.updateMany({
+    where: { ticketNumber: "TKT-2026-900013", resolvedAt: null },
+    data: { resolvedAt: now },
+  });
+}
+
 async function main() {
   const prisma = getPrisma();
 
@@ -230,9 +313,10 @@ async function main() {
 
   await seedUsers();
   await seedTickets();
+  await seedActions();
 
   console.log(
-    "Seeded TokTickIT categories, related systems, users, tickets, comments, and notes."
+    "Seeded TokTickIT categories, related systems, users, tickets, comments, notes, and actions."
   );
 }
 
