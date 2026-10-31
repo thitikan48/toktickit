@@ -4,6 +4,7 @@ import { getPrisma } from "./prisma.js";
 import { logServerError } from "./log.js";
 import { requireRole } from "./auth.js";
 import {
+  blockedByOpenActions,
   canTransition,
   isTicketStatus,
   needsConfirmation,
@@ -49,6 +50,23 @@ function validation(fields: Record<string, string>) {
     fields
   );
 }
+
+// Someone saved the Ticket after this user loaded it (BR-18).
+const STALE_UPDATE = errorBody(
+  "STALE_UPDATE",
+  "This ticket was changed by someone else. Reload to see the latest version."
+);
+
+const OPEN_ACTIONS_EXIST = errorBody(
+  "OPEN_ACTIONS_EXIST",
+  "Complete or cancel all open actions before resolving or closing."
+);
+
+function isVersion(value: unknown): value is number {
+  return Number.isInteger(value) && (value as number) >= 0;
+}
+
+const VERSION_MESSAGE = "Send the version of the ticket you loaded.";
 
 const userSummary = { select: { id: true, name: true } };
 
@@ -242,6 +260,8 @@ const detailSelect = {
   requesterMarkedResolved: true,
   createdAt: true,
   updatedAt: true,
+  resolvedAt: true,
+  version: true,
   requester: { select: { id: true, name: true, email: true } },
   category: userSummary,
   relatedSystem: userSummary,
@@ -280,6 +300,7 @@ staffRouter.get(
 
 /*
  * Owner and IT Priority. Claiming is assigning the ticket to yourself.
+ * The caller sends the version it loaded; a mismatch saves nothing (BR-18).
  */
 staffRouter.patch(
   "/staff/tickets/:id",
@@ -287,15 +308,13 @@ staffRouter.patch(
     try {
       const body = req.body ?? {};
       const fields: Record<string, string> = {};
-      const data: Prisma.TicketUncheckedUpdateInput = {};
+      const data: Prisma.TicketUncheckedUpdateManyInput = {};
 
       const hasOwner = Object.prototype.hasOwnProperty.call(body, "ownerId");
       const hasPriority = Object.prototype.hasOwnProperty.call(body, "itPriority");
 
       if (!hasOwner && !hasPriority) {
-        return res
-          .status(400)
-          .json(validation({ body: "Send ownerId and/or itPriority." }));
+        fields.body = "Send ownerId and/or itPriority.";
       }
 
       if (hasOwner && body.ownerId !== null && !Number.isInteger(body.ownerId)) {
@@ -310,6 +329,10 @@ staffRouter.patch(
         }
       }
 
+      if (!isVersion(body.expectedVersion)) {
+        fields.expectedVersion = VERSION_MESSAGE;
+      }
+
       if (Object.keys(fields).length > 0) {
         return res.status(400).json(validation(fields));
       }
@@ -317,15 +340,19 @@ staffRouter.patch(
       const ticketId = Number(req.params.id);
       const prisma = getPrisma();
 
-      const exists = Number.isInteger(ticketId)
+      const ticket = Number.isInteger(ticketId)
         ? await prisma.ticket.findUnique({
             where: { id: ticketId },
-            select: { id: true },
+            select: { id: true, version: true },
           })
         : null;
 
-      if (!exists) {
+      if (!ticket) {
         return res.status(404).json(NOT_FOUND);
+      }
+
+      if (ticket.version !== body.expectedVersion) {
+        return res.status(409).json(STALE_UPDATE);
       }
 
       if (hasOwner) {
@@ -356,15 +383,25 @@ staffRouter.patch(
         }
       }
 
-      const updated = await prisma.ticket.update({
+      // Saves only if nobody changed the Ticket in the meantime (D-01).
+      const saved = await prisma.ticket.updateMany({
+        where: { id: ticketId, version: body.expectedVersion },
+        data: { ...data, version: { increment: 1 } },
+      });
+
+      if (saved.count === 0) {
+        return res.status(409).json(STALE_UPDATE);
+      }
+
+      const updated = await prisma.ticket.findUniqueOrThrow({
         where: { id: ticketId },
-        data,
         select: {
           id: true,
           requestedPriority: true,
           itPriority: true,
           owner: userSummary,
           updatedAt: true,
+          version: true,
         },
       });
 
@@ -377,24 +414,28 @@ staffRouter.patch(
 );
 
 /*
- * Status workflow
+ * Status workflow: transition matrix, owner, resolution gate, then the
+ * change itself with its history row (docs/lab-04/specification.md, 5.2).
  */
 staffRouter.post(
   "/staff/tickets/:id/status",
   async (req: Request, res: Response) => {
     try {
-      const { status, confirm } = req.body ?? {};
+      const { status, confirm, expectedVersion } = req.body ?? {};
+      const fields: Record<string, string> = {};
 
       if (!isTicketStatus(status)) {
-        return res
-          .status(400)
-          .json(validation({ status: "Invalid status." }));
+        fields.status = "Invalid status.";
+      } else if (needsConfirmation(status) && confirm !== true) {
+        fields.confirm = "Confirm this status change.";
       }
 
-      if (needsConfirmation(status) && confirm !== true) {
-        return res
-          .status(400)
-          .json(validation({ confirm: "Confirm this status change." }));
+      if (!isVersion(expectedVersion)) {
+        fields.expectedVersion = VERSION_MESSAGE;
+      }
+
+      if (Object.keys(fields).length > 0) {
+        return res.status(400).json(validation(fields));
       }
 
       const ticketId = Number(req.params.id);
@@ -403,12 +444,16 @@ staffRouter.post(
       const ticket = Number.isInteger(ticketId)
         ? await prisma.ticket.findUnique({
             where: { id: ticketId },
-            select: { id: true, currentStatus: true, ownerId: true },
+            select: { id: true, currentStatus: true, ownerId: true, version: true },
           })
         : null;
 
       if (!ticket) {
         return res.status(404).json(NOT_FOUND);
+      }
+
+      if (ticket.version !== expectedVersion) {
+        return res.status(409).json(STALE_UPDATE);
       }
 
       if (!canTransition(ticket.currentStatus, status)) {
@@ -433,15 +478,65 @@ staffRouter.post(
           );
       }
 
-      const updated = await prisma.ticket.update({
-        where: { id: ticketId },
-        data: {
-          currentStatus: status,
-          // The Requester's "appears resolved" no longer applies after a reopen.
-          ...(status === "REOPENED" ? { requesterMarkedResolved: false } : {}),
-        },
-        select: { id: true, currentStatus: true, updatedAt: true },
+      const actions = await prisma.actionTaken.findMany({
+        where: { ticketId },
+        select: { status: true },
       });
+
+      if (
+        blockedByOpenActions(
+          ticket.currentStatus,
+          status,
+          actions.map((action) => action.status)
+        )
+      ) {
+        return res.status(409).json(OPEN_ACTIONS_EXIST);
+      }
+
+      // The status, version, resolvedAt, and history row are saved together.
+      const updated = await prisma.$transaction(async (tx) => {
+        const saved = await tx.ticket.updateMany({
+          where: { id: ticketId, version: expectedVersion },
+          data: {
+            currentStatus: status,
+            version: { increment: 1 },
+            // Resolved sets resolvedAt, Closed keeps it, Reopened clears it (BR-14).
+            ...(status === "RESOLVED" ? { resolvedAt: new Date() } : {}),
+            // The Requester's "appears resolved" no longer applies after a reopen.
+            ...(status === "REOPENED"
+              ? { resolvedAt: null, requesterMarkedResolved: false }
+              : {}),
+          },
+        });
+
+        if (saved.count === 0) {
+          return null;
+        }
+
+        await tx.ticketStatusHistory.create({
+          data: {
+            ticketId,
+            fromStatus: ticket.currentStatus,
+            toStatus: status,
+            changedById: req.user!.id,
+          },
+        });
+
+        return tx.ticket.findUniqueOrThrow({
+          where: { id: ticketId },
+          select: {
+            id: true,
+            currentStatus: true,
+            updatedAt: true,
+            resolvedAt: true,
+            version: true,
+          },
+        });
+      });
+
+      if (!updated) {
+        return res.status(409).json(STALE_UPDATE);
+      }
 
       return res.status(200).json(updated);
     } catch (error) {
