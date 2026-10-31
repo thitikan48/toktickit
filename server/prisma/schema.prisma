@@ -37,6 +37,12 @@ model User {
   comments         TicketComment[]
   internalNotes    TicketInternalNote[]
 
+  assignedActions  ActionTaken[]         @relation("ActionAssignedTo")
+  performedActions ActionTaken[]         @relation("ActionPerformedBy")
+  createdActions   ActionTaken[]         @relation("ActionCreatedBy")
+  updatedActions   ActionTaken[]         @relation("ActionUpdatedBy")
+  statusChanges    TicketStatusHistory[]
+
   @@index([role, isActive])
 }
 
@@ -67,20 +73,22 @@ model RelatedSystem {
 }
 
 model Ticket {
-  id                Int               @id @default(autoincrement())
-  ticketNumber      String            @unique
-  requesterId       Int
-  categoryId        Int
-  relatedSystemId   Int
-  summary           String            @db.VarChar(120)
-  description       String
-  requestedPriority RequestedPriority
-  itPriority        RequestedPriority
-  currentStatus     TicketStatus      @default(NEW)
-  ownerId           Int?
-  requesterMarkedResolved Boolean     @default(false)
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  id                      Int               @id @default(autoincrement())
+  ticketNumber            String            @unique
+  requesterId             Int
+  categoryId              Int
+  relatedSystemId         Int
+  summary                 String            @db.VarChar(120)
+  description             String
+  requestedPriority       RequestedPriority
+  itPriority              RequestedPriority
+  currentStatus           TicketStatus      @default(NEW)
+  ownerId                 Int?
+  requesterMarkedResolved Boolean           @default(false)
+  resolvedAt              DateTime?
+  version                 Int               @default(0)
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
 
   requester     User          @relation("TicketRequester", fields: [requesterId], references: [id])
   owner         User?         @relation("TicketOwner", fields: [ownerId], references: [id])
@@ -90,6 +98,8 @@ model Ticket {
   attachments   Attachment[]
   comments      TicketComment[]
   internalNotes TicketInternalNote[]
+  actions       ActionTaken[]
+  statusHistory TicketStatusHistory[]
 
   @@index([requesterId, createdAt])
   @@index([requesterId, currentStatus])
@@ -97,19 +107,20 @@ model Ticket {
   @@index([ownerId])
   @@index([currentStatus])
   @@index([itPriority])
+  @@index([resolvedAt])
 }
 
 model Attachment {
-  id            Int      @id @default(autoincrement())
+  id            Int       @id @default(autoincrement())
   ticketId      Int
   originalName  String
-  storedName    String   @unique
+  storedName    String    @unique
   mimeType      String
   sizeBytes     Int
-  isRemoved     Boolean  @default(false)
+  isRemoved     Boolean   @default(false)
   removalReason String?
   removedAt     DateTime?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime  @default(now())
 
   ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
@@ -140,4 +151,54 @@ model TicketInternalNote {
   author User   @relation(fields: [authorId], references: [id])
 
   @@index([ticketId, createdAt])
+}
+
+// Lab 4: work done on a Ticket. Actions are never deleted; Cancelled is used instead.
+enum ActionStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model ActionTaken {
+  id               Int          @id @default(autoincrement())
+  ticketId         Int
+  actionAt         DateTime
+  description      String       @db.VarChar(1000)
+  result           String?      @db.VarChar(1000)
+  status           ActionStatus @default(PLANNED)
+  assignedToId     Int
+  performedById    Int?
+  followUpRequired Boolean      @default(false)
+  followUpNote     String?      @db.VarChar(1000)
+  attachmentNotes  String?      @db.VarChar(500)
+  createdById      Int
+  updatedById      Int
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  ticket      Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  assignedTo  User   @relation("ActionAssignedTo", fields: [assignedToId], references: [id])
+  performedBy User?  @relation("ActionPerformedBy", fields: [performedById], references: [id])
+  createdBy   User   @relation("ActionCreatedBy", fields: [createdById], references: [id])
+  updatedBy   User   @relation("ActionUpdatedBy", fields: [updatedById], references: [id])
+
+  @@index([ticketId, actionAt])
+  @@index([assignedToId, status])
+}
+
+// Lab 4: one row per successful status change (append-only).
+model TicketStatusHistory {
+  id          Int          @id @default(autoincrement())
+  ticketId    Int
+  fromStatus  TicketStatus
+  toStatus    TicketStatus
+  changedById Int
+  changedAt   DateTime     @default(now())
+
+  ticket    Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  changedBy User   @relation(fields: [changedById], references: [id])
+
+  @@index([ticketId, changedAt])
 }

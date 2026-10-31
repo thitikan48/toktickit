@@ -125,12 +125,31 @@ The seed also adds 13 sample tickets (all statuses and priorities, assigned and 
 
 The Lab 3 tests use the seeded accounts above, so run `npm run prisma:seed` first. They never create the users they log in with.
 
+### Test Database (Lab 4)
+
+From Lab 4 the server tests use their own database, `toktickit_test`, so they never change the demo data in `toktickit`.
+
+1. Create the empty database once (use your own PostgreSQL user):
+
+   ```bash
+   psql -U postgres -c "CREATE DATABASE toktickit_test"
+   ```
+
+2. Create `server/.env.test` with the same connection string as `.env`, but with the database name `toktickit_test`:
+
+   ```text
+   DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/toktickit_test?schema=public"
+   ```
+
+   This file is ignored by git. `npm test` stops with a clear message if it is missing.
+
+Before the tests start, the test setup runs `prisma migrate deploy` and the seed on `toktickit_test`.
+
 ### Backend Tests
 
 ```bash
 cd server
-npx vitest run tests/lab-03    # Lab 3
-npm test -- --run              # all labs
+npm test                       # server/tests/lab-04 on toktickit_test
 ```
 
 ### Frontend Tests
