@@ -7,6 +7,7 @@ import { commentRouter } from "./comments.js";
 import { staffRouter } from "./staff.js";
 import { adminRouter } from "./admin.js";
 import { actionRouter } from "./actions.js";
+import { historyRouter } from "./history.js";
 import { generateTicketNumber } from "./ticket-number.js";
 import {
   authRouter,
@@ -50,6 +51,7 @@ app.use("/api", commentRouter);
 app.use("/api", staffRouter);
 app.use("/api", adminRouter);
 app.use("/api", actionRouter);
+app.use("/api", historyRouter);
 
 app.get("/api/categories", async (_req: Request, res: Response) => {
   try {

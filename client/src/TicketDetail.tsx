@@ -8,6 +8,7 @@ import {
   TicketDetail as TicketDetailData,
 } from "./api.js";
 import ActionsTaken from "./ActionsTaken.js";
+import StatusTimeline from "./StatusTimeline.js";
 import AttachmentSection from "./AttachmentSection.js";
 import CommentSection from "./CommentSection.js";
 import StatusBadge, { statusLabel } from "./StatusBadge.js";
@@ -446,6 +447,11 @@ export default function TicketDetail({
       )}
 
       <ActionsTaken
+        ticketId={ticket.id}
+        mode="requester"
+      />
+
+      <StatusTimeline
         ticketId={ticket.id}
         mode="requester"
       />

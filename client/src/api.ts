@@ -696,6 +696,8 @@ export interface StaffTicketDetail {
   requesterMarkedResolved: boolean;
   createdAt: string;
   updatedAt: string;
+  resolvedAt: string | null;
+  version: number;
   requester: { id: number; name: string; email: string };
   category: { id: number; name: string };
   relatedSystem: { id: number; name: string };
@@ -732,41 +734,82 @@ export async function getAssignees(): Promise<Assignee[]> {
   return (await response.json()).items;
 }
 
+// Owner and IT Priority. expectedVersion is the version the screen loaded;
+// the result has the new version.
 export async function updateTicket(
   ticketId: number,
-  changes: { ownerId?: number | null; itPriority?: RequestedPriority }
-): Promise<void> {
+  changes: { ownerId?: number | null; itPriority?: RequestedPriority },
+  expectedVersion: number
+): Promise<{ version: number }> {
   const response = await apiFetch(
     `${API_URL}/api/staff/tickets/${ticketId}`,
     {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(changes),
+      body: JSON.stringify({ ...changes, expectedVersion }),
     }
   );
 
   if (!response.ok) {
     throw await readError(response, "Unable to save the change");
   }
+
+  return response.json();
 }
 
 export async function changeStatus(
   ticketId: number,
   status: TicketStatus,
-  confirm: boolean
+  confirm: boolean,
+  expectedVersion: number
 ): Promise<void> {
   const response = await apiFetch(
     `${API_URL}/api/staff/tickets/${ticketId}/status`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, confirm }),
+      body: JSON.stringify({ status, confirm, expectedVersion }),
     }
   );
 
   if (!response.ok) {
     throw await readError(response, "Unable to change the status");
   }
+}
+
+/*
+ * Status Timeline (Lab 4)
+ */
+export interface StatusHistoryEntry {
+  id: number;
+  fromStatus: TicketStatus;
+  toStatus: TicketStatus;
+  changedBy: { id: number; name: string; role: UserRole };
+  changedAt: string;
+}
+
+async function readHistory(
+  url: string
+): Promise<StatusHistoryEntry[]> {
+  const response = await apiFetch(url);
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to load the history");
+  }
+
+  return (await response.json()).items;
+}
+
+export function getStaffHistory(
+  ticketId: number
+): Promise<StatusHistoryEntry[]> {
+  return readHistory(`${API_URL}/api/staff/tickets/${ticketId}/history`);
+}
+
+export function getRequesterHistory(
+  ticketId: number
+): Promise<StatusHistoryEntry[]> {
+  return readHistory(`${API_URL}/api/tickets/${ticketId}/history`);
 }
 
 export async function getInternalNotes(
