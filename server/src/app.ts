@@ -8,6 +8,7 @@ import { staffRouter } from "./staff.js";
 import { adminRouter } from "./admin.js";
 import { actionRouter } from "./actions.js";
 import { historyRouter } from "./history.js";
+import { ACTIVE_STATUSES, dashboardRouter } from "./dashboards.js";
 import { generateTicketNumber } from "./ticket-number.js";
 import {
   authRouter,
@@ -52,6 +53,7 @@ app.use("/api", staffRouter);
 app.use("/api", adminRouter);
 app.use("/api", actionRouter);
 app.use("/api", historyRouter);
+app.use("/api", dashboardRouter);
 
 app.get("/api/categories", async (_req: Request, res: Response) => {
   try {
@@ -163,7 +165,18 @@ app.get(
             )
           : 10;
 
+      // Lab 4: statusGroup=active keeps only the active statuses (BR-24).
+      const statusGroup = req.query.statusGroup;
 
+      if (statusGroup !== undefined && statusGroup !== "active") {
+        return res.status(400).json({
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "The request contains invalid or missing data.",
+            fields: { statusGroup: "statusGroup must be active." },
+          },
+        });
+      }
 
       const where = {
         requesterId,
@@ -187,10 +200,12 @@ app.get(
             }
           : {}),
 
-        ...(status
+        ...(status || statusGroup
           ? {
-              currentStatus:
-                status as "NEW",
+              currentStatus: {
+                ...(status ? { equals: status as "NEW" } : {}),
+                ...(statusGroup ? { in: ACTIVE_STATUSES } : {}),
+              },
             }
           : {}),
 

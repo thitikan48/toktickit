@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { getPrisma } from "./prisma.js";
 import { logServerError } from "./log.js";
 import { requireRole } from "./auth.js";
+import { ACTIVE_STATUSES } from "./dashboards.js";
 import {
   blockedByOpenActions,
   canTransition,
@@ -19,6 +20,7 @@ const QUERY_KEYS = [
   "itPriority",
   "categoryId",
   "ownerId",
+  "statusGroup",
   "sort",
   "direction",
   "page",
@@ -106,6 +108,12 @@ staffRouter.get(
         fields.status = "Invalid status.";
       }
 
+      // Lab 4: statusGroup=active keeps only the active statuses (BR-24).
+      const statusGroup = text("statusGroup");
+      if (statusGroup !== undefined && statusGroup !== "active") {
+        fields.statusGroup = "statusGroup must be active.";
+      }
+
       const itPriority = text("itPriority");
       if (itPriority !== undefined && !PRIORITIES.includes(itPriority)) {
         fields.itPriority = "Invalid priority.";
@@ -161,7 +169,14 @@ staffRouter.get(
 
       const where: Prisma.TicketWhereInput = {
         ...ownerFilter,
-        ...(status ? { currentStatus: status as never } : {}),
+        ...(status || statusGroup
+          ? {
+              currentStatus: {
+                ...(status ? { equals: status as never } : {}),
+                ...(statusGroup ? { in: ACTIVE_STATUSES } : {}),
+              },
+            }
+          : {}),
         ...(itPriority ? { itPriority: itPriority as never } : {}),
         ...(categoryId !== undefined ? { categoryId } : {}),
         ...(search

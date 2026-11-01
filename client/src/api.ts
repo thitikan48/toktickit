@@ -347,6 +347,8 @@ export interface TicketListResponse {
 export interface GetTicketsParams {
   search?: string;
   status?: string;
+  /** Lab 4: "active" keeps only the active statuses. */
+  statusGroup?: "active";
   categoryId?: number;
   requestedPriority?: RequestedPriority;
   sort?:
@@ -373,6 +375,10 @@ export async function getTickets(
       "status",
       params.status
     );
+  }
+
+  if (params.statusGroup) {
+    query.set("statusGroup", params.statusGroup);
   }
 
   if (params.categoryId) {
@@ -654,6 +660,8 @@ export interface StaffTicketListResponse {
 export interface StaffTicketsParams {
   search?: string;
   status?: string;
+  /** Lab 4: "active" keeps only the active statuses. */
+  statusGroup?: "active";
   itPriority?: string;
   categoryId?: number;
   /** A user id, or "unassigned". */
@@ -1040,4 +1048,61 @@ export async function setInitialPassword(
   if (!response.ok) {
     throw await readError(response, "Unable to set the password");
   }
+}
+
+/*
+ * Dashboards (Lab 4). Counts and short lists, calculated by the backend.
+ */
+export interface DashboardTicket {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  currentStatus: TicketStatus;
+}
+
+export interface RequesterDashboardData {
+  openTickets: number;
+  waitingForMe: number;
+  recentlyUpdated: (DashboardTicket & { updatedAt: string })[];
+  recentlyResolved: (DashboardTicket & { resolvedAt: string })[];
+}
+
+export interface StaffDashboardData {
+  unassigned: number;
+  myOpenTickets: number;
+  myOpenActions: number;
+  myOpenActionsList: {
+    actionId: number;
+    ticketId: number;
+    ticketNumber: string;
+    description: string;
+    status: ActionStatus;
+    actionAt: string;
+  }[];
+  countsByStatus: Record<TicketStatus, number>;
+  recentlyUpdated: (DashboardTicket & {
+    owner: { id: number; name: string } | null;
+    updatedAt: string;
+  })[];
+}
+
+// No parameters: the backend uses the session user only.
+export async function getRequesterDashboard(): Promise<RequesterDashboardData> {
+  const response = await apiFetch(`${API_URL}/api/dashboard/requester`);
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to load the dashboard");
+  }
+
+  return response.json();
+}
+
+export async function getStaffDashboard(): Promise<StaffDashboardData> {
+  const response = await apiFetch(`${API_URL}/api/staff/dashboard`);
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to load the dashboard");
+  }
+
+  return response.json();
 }
