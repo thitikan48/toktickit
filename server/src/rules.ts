@@ -89,3 +89,22 @@ export function canTransition(
 export function needsConfirmation(to: TicketStatusValue): boolean {
   return to === "RESOLVED" || to === "CLOSED" || to === "CANCELLED";
 }
+
+// ---- Resolution gate (docs/lab-04/specification.md, BR-13)
+
+/**
+ * True when the change must wait for the Ticket's open actions: Resolved,
+ * or Resolved to Closed, while an action is Planned or In Progress.
+ */
+export function blockedByOpenActions(
+  from: TicketStatusValue,
+  to: TicketStatusValue,
+  actionStatuses: string[]
+): boolean {
+  const gated = to === "RESOLVED" || (from === "RESOLVED" && to === "CLOSED");
+
+  return (
+    gated &&
+    actionStatuses.some((status) => status === "PLANNED" || status === "IN_PROGRESS")
+  );
+}

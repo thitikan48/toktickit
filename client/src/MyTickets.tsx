@@ -12,15 +12,20 @@ import {
   RequestedPriority,
   TicketListItem,
 } from "./api.js";
+import ActiveChip from "./ActiveChip.js";
+import { MyTicketsFilters } from "./RequesterDashboard.js";
 
 interface MyTicketsProps {
   onOpenTicket?: (
     ticket: TicketListItem
   ) => void;
+  /** Lab 4: filters from a Requester Dashboard card. */
+  initialFilters?: MyTicketsFilters;
 }
 
 export default function MyTickets({
   onOpenTicket,
+  initialFilters = {},
 }: MyTicketsProps) {
   const [tickets, setTickets] =
     useState<TicketListItem[]>([]);
@@ -29,7 +34,12 @@ export default function MyTickets({
     useState<Category[]>([]);
 
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState(
+    initialFilters.status ?? ""
+  );
+  // No dropdown for this one; it shows as a chip.
+  const [statusGroup, setStatusGroup] =
+    useState(initialFilters.statusGroup);
   const [categoryId, setCategoryId] =
     useState("");
   const [priority, setPriority] =
@@ -57,6 +67,7 @@ export default function MyTickets({
     return Boolean(
       search ||
         status ||
+        statusGroup ||
         categoryId ||
         priority ||
         sort !== "createdAt_desc"
@@ -64,6 +75,7 @@ export default function MyTickets({
   }, [
     search,
     status,
+    statusGroup,
     categoryId,
     priority,
     sort,
@@ -100,6 +112,8 @@ export default function MyTickets({
 
             status:
               status || undefined,
+
+            statusGroup,
 
             categoryId: categoryId
               ? Number(categoryId)
@@ -153,6 +167,7 @@ export default function MyTickets({
   }, [
     search,
     status,
+    statusGroup,
     categoryId,
     priority,
     sort,
@@ -163,6 +178,7 @@ export default function MyTickets({
   function resetFilters() {
     setSearch("");
     setStatus("");
+    setStatusGroup(undefined);
     setCategoryId("");
     setPriority("");
     setSort("createdAt_desc");
@@ -452,6 +468,15 @@ export default function MyTickets({
               </select>
             </div>
           </div>
+
+          {statusGroup && (
+            <ActiveChip
+              onRemove={() => {
+                setStatusGroup(undefined);
+                setPage(1);
+              }}
+            />
+          )}
 
           {hasFilters && (
             <div className="mt-3">

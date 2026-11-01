@@ -12,6 +12,8 @@ import ChangePassword from "./ChangePassword.js";
 import CreateTicket from "./CreateTicket.js";
 import Login from "./Login.js";
 import MyTickets from "./MyTickets.js";
+import RequesterDashboard, { MyTicketsFilters } from "./RequesterDashboard.js";
+import StaffDashboard from "./StaffDashboard.js";
 import StaffTicketDetail from "./StaffTicketDetail.js";
 import StaffTicketQueue, {
   EMPTY_FILTERS,
@@ -21,6 +23,7 @@ import UserManagement from "./UserManagement.js";
 import TicketDetail from "./TicketDetail.js";
 
 type Screen =
+  | "dashboard"
   | "home"
   | "create"
   | "detail"
@@ -41,21 +44,23 @@ const NAVIGATION: Record<
   { screen: Screen; label: string }[]
 > = {
   REQUESTER: [
+    { screen: "dashboard", label: "Dashboard" },
     { screen: "home", label: "My Tickets" },
     { screen: "create", label: "Create Ticket" },
   ],
-  IT_STAFF: [{ screen: "queue", label: "Ticket Queue" }],
+  IT_STAFF: [
+    { screen: "dashboard", label: "Dashboard" },
+    { screen: "queue", label: "Ticket Queue" },
+  ],
   ADMIN: [
+    { screen: "dashboard", label: "Dashboard" },
     { screen: "queue", label: "Ticket Queue" },
     { screen: "users", label: "User Management" },
   ],
 };
 
-const HOME_SCREEN: Record<UserRole, Screen> = {
-  REQUESTER: "home",
-  IT_STAFF: "queue",
-  ADMIN: "queue",
-};
+// Lab 4: every role starts on its Dashboard (BR-30).
+const HOME_SCREEN: Screen = "dashboard";
 
 const SESSION_EXPIRED =
   "Your session has expired. Please log in again.";
@@ -71,10 +76,13 @@ export default function App() {
   // The queue's search and filters survive opening a ticket and coming back.
   const [queueFilters, setQueueFilters] =
     useState<QueueFilters>(EMPTY_FILTERS);
+  // Filters My Tickets starts with (from a Requester Dashboard card).
+  const [myTicketsFilters, setMyTicketsFilters] =
+    useState<MyTicketsFilters>({});
 
-  function showHome(current: AuthUser) {
+  function showHome() {
     setSelectedTicketId(null);
-    setScreen(HOME_SCREEN[current.role]);
+    setScreen(HOME_SCREEN);
   }
 
   async function restoreSession() {
@@ -86,7 +94,7 @@ export default function App() {
 
       if (current) {
         setUser(current);
-        showHome(current);
+        showHome();
       }
     } catch {
       setLoadError(true);
@@ -112,7 +120,7 @@ export default function App() {
   function handleLoggedIn(current: AuthUser) {
     setNotice("");
     setUser(current);
-    showHome(current);
+    showHome();
   }
 
   async function handleLogout() {
@@ -122,6 +130,7 @@ export default function App() {
       setUser(null);
       setNotice("");
       setQueueFilters(EMPTY_FILTERS);
+      setMyTicketsFilters({});
     }
   }
 
@@ -137,7 +146,27 @@ export default function App() {
 
   function go(next: Screen) {
     setSelectedTicketId(null);
+    // My Tickets opened from the navigation starts without filters.
+    setMyTicketsFilters({});
     setScreen(next);
+  }
+
+  // Dashboard drill-downs (ui-spec sections 3 and 4).
+  function openMyTickets(filters: MyTicketsFilters) {
+    setSelectedTicketId(null);
+    setMyTicketsFilters(filters);
+    setScreen("home");
+  }
+
+  function openQueue(filters: Partial<QueueFilters>) {
+    setSelectedTicketId(null);
+    setQueueFilters({ ...EMPTY_FILTERS, ...filters });
+    setScreen("queue");
+  }
+
+  function openTicket(ticketId: number, detail: Screen) {
+    setSelectedTicketId(ticketId);
+    setScreen(detail);
   }
 
   if (loading) {
@@ -226,6 +255,7 @@ export default function App() {
                           ? "fw-bold border-bottom border-3"
                           : ""
                       }`}
+                      aria-current={active ? "page" : undefined}
                       onClick={() => go(item.screen)}
                     >
                       {item.label}
@@ -271,7 +301,7 @@ export default function App() {
           mandatory
           onChanged={(updated) => {
             setUser(updated);
-            showHome(updated);
+            showHome();
           }}
         />
       ) : (
@@ -281,18 +311,27 @@ export default function App() {
               mandatory={false}
               onChanged={(updated) => {
                 setUser(updated);
-                showHome(updated);
+                showHome();
               }}
-              onCancel={() => showHome(user)}
+              onCancel={() => showHome()}
             />
           )}
 
           {user.role === "REQUESTER" && (
             <>
+              {screen === "dashboard" && (
+                <RequesterDashboard
+                  key={user.id}
+                  onOpenMyTickets={openMyTickets}
+                  onOpenTicket={(ticketId) => openTicket(ticketId, "detail")}
+                />
+              )}
+
               {screen === "home" && (
                 <MyTickets
                   key={user.id}
                   onOpenTicket={handleOpenTicket}
+                  initialFilters={myTicketsFilters}
                 />
               )}
 
@@ -317,6 +356,15 @@ export default function App() {
 
           {user.role !== "REQUESTER" && (
             <>
+              {screen === "dashboard" && (
+                <StaffDashboard
+                  key={user.id}
+                  currentUserId={user.id}
+                  onOpenQueue={openQueue}
+                  onOpenTicket={(ticketId) => openTicket(ticketId, "staff-detail")}
+                />
+              )}
+
               {screen === "queue" && (
                 <StaffTicketQueue
                   key={user.id}

@@ -10,10 +10,6 @@ const PRIORITY_STYLES: Record<
   HIGH: { label: "High", background: "#FEF3F2", color: "#B42318" },
 };
 
-export function priorityLabel(priority: RequestedPriority): string {
-  return PRIORITY_STYLES[priority].label;
-}
-
 export default function PriorityBadge({
   priority,
   className = "",

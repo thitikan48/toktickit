@@ -165,43 +165,6 @@ export interface Category {
   name: string;
 }
 
-export interface SystemStatus {
-  online: boolean;
-  categories: Category[];
-}
-
-export async function checkSystem(): Promise<SystemStatus> {
-  const healthResponse = await apiFetch(
-    `${API_URL}/api/health`
-  );
-
-  if (!healthResponse.ok) {
-    throw new Error(
-      "Unable to connect to TokTickIT API"
-    );
-  }
-
-  await healthResponse.json();
-
-  const categoriesResponse = await apiFetch(
-    `${API_URL}/api/categories`
-  );
-
-  if (!categoriesResponse.ok) {
-    throw new Error(
-      "Unable to load categories"
-    );
-  }
-
-  const categories: Category[] =
-    await categoriesResponse.json();
-
-  return {
-    online: true,
-    categories,
-  };
-}
-
 export interface RelatedSystem {
   id: number;
   name: string;
@@ -326,7 +289,7 @@ export interface TicketListItem {
 }
 
 /*
- * Issue 5: Requester Ticket Detail
+ * Requester Ticket Detail
  */
 export interface TicketDetail
   extends TicketListItem {
@@ -347,6 +310,8 @@ export interface TicketListResponse {
 export interface GetTicketsParams {
   search?: string;
   status?: string;
+  /** Lab 4: "active" keeps only the active statuses. */
+  statusGroup?: "active";
   categoryId?: number;
   requestedPriority?: RequestedPriority;
   sort?:
@@ -373,6 +338,10 @@ export async function getTickets(
       "status",
       params.status
     );
+  }
+
+  if (params.statusGroup) {
+    query.set("statusGroup", params.statusGroup);
   }
 
   if (params.categoryId) {
@@ -424,7 +393,7 @@ export async function getTickets(
 }
 
 /*
- * Issue 5: Load one owned Ticket
+ * Load one owned Ticket
  */
 export async function getTicketById(
   ticketId: number
@@ -654,6 +623,8 @@ export interface StaffTicketListResponse {
 export interface StaffTicketsParams {
   search?: string;
   status?: string;
+  /** Lab 4: "active" keeps only the active statuses. */
+  statusGroup?: "active";
   itPriority?: string;
   categoryId?: number;
   /** A user id, or "unassigned". */
@@ -696,6 +667,8 @@ export interface StaffTicketDetail {
   requesterMarkedResolved: boolean;
   createdAt: string;
   updatedAt: string;
+  resolvedAt: string | null;
+  version: number;
   requester: { id: number; name: string; email: string };
   category: { id: number; name: string };
   relatedSystem: { id: number; name: string };
@@ -732,41 +705,82 @@ export async function getAssignees(): Promise<Assignee[]> {
   return (await response.json()).items;
 }
 
+// Owner and IT Priority. expectedVersion is the version the screen loaded;
+// the result has the new version.
 export async function updateTicket(
   ticketId: number,
-  changes: { ownerId?: number | null; itPriority?: RequestedPriority }
-): Promise<void> {
+  changes: { ownerId?: number | null; itPriority?: RequestedPriority },
+  expectedVersion: number
+): Promise<{ version: number }> {
   const response = await apiFetch(
     `${API_URL}/api/staff/tickets/${ticketId}`,
     {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(changes),
+      body: JSON.stringify({ ...changes, expectedVersion }),
     }
   );
 
   if (!response.ok) {
     throw await readError(response, "Unable to save the change");
   }
+
+  return response.json();
 }
 
 export async function changeStatus(
   ticketId: number,
   status: TicketStatus,
-  confirm: boolean
+  confirm: boolean,
+  expectedVersion: number
 ): Promise<void> {
   const response = await apiFetch(
     `${API_URL}/api/staff/tickets/${ticketId}/status`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, confirm }),
+      body: JSON.stringify({ status, confirm, expectedVersion }),
     }
   );
 
   if (!response.ok) {
     throw await readError(response, "Unable to change the status");
   }
+}
+
+/*
+ * Status Timeline (Lab 4)
+ */
+export interface StatusHistoryEntry {
+  id: number;
+  fromStatus: TicketStatus;
+  toStatus: TicketStatus;
+  changedBy: { id: number; name: string; role: UserRole };
+  changedAt: string;
+}
+
+async function readHistory(
+  url: string
+): Promise<StatusHistoryEntry[]> {
+  const response = await apiFetch(url);
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to load the history");
+  }
+
+  return (await response.json()).items;
+}
+
+export function getStaffHistory(
+  ticketId: number
+): Promise<StatusHistoryEntry[]> {
+  return readHistory(`${API_URL}/api/staff/tickets/${ticketId}/history`);
+}
+
+export function getRequesterHistory(
+  ticketId: number
+): Promise<StatusHistoryEntry[]> {
+  return readHistory(`${API_URL}/api/tickets/${ticketId}/history`);
 }
 
 export async function getInternalNotes(
@@ -798,6 +812,109 @@ export async function postInternalNote(
 
   if (!response.ok) {
     throw await readError(response, "Unable to add the note");
+  }
+
+  return response.json();
+}
+
+/*
+ * Actions Taken (Lab 4)
+ */
+export type ActionStatus =
+  | "PLANNED"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "CANCELLED";
+
+export interface ActionTaken {
+  id: number;
+  ticketId: number;
+  actionAt: string;
+  description: string;
+  result: string | null;
+  status: ActionStatus;
+  assignedTo: { id: number; name: string };
+  performedBy: { id: number; name: string } | null;
+  followUpRequired: boolean;
+  followUpNote: string | null;
+  attachmentNotes: string | null;
+  createdBy: { id: number; name: string };
+  updatedBy: { id: number; name: string };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ActionInput {
+  actionAt?: string;
+  description?: string;
+  status?: ActionStatus;
+  result?: string;
+  assignedToId?: number;
+  followUpRequired?: boolean;
+  followUpNote?: string;
+  attachmentNotes?: string;
+}
+
+async function readActions(
+  url: string
+): Promise<ActionTaken[]> {
+  const response = await apiFetch(url);
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to load the actions");
+  }
+
+  return (await response.json()).items;
+}
+
+export function getStaffActions(
+  ticketId: number
+): Promise<ActionTaken[]> {
+  return readActions(`${API_URL}/api/staff/tickets/${ticketId}/actions`);
+}
+
+export function getRequesterActions(
+  ticketId: number
+): Promise<ActionTaken[]> {
+  return readActions(`${API_URL}/api/tickets/${ticketId}/actions`);
+}
+
+export async function createAction(
+  ticketId: number,
+  input: ActionInput
+): Promise<ActionTaken> {
+  const response = await apiFetch(
+    `${API_URL}/api/staff/tickets/${ticketId}/actions`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    }
+  );
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to save the action");
+  }
+
+  return response.json();
+}
+
+export async function updateAction(
+  ticketId: number,
+  actionId: number,
+  changes: ActionInput
+): Promise<ActionTaken> {
+  const response = await apiFetch(
+    `${API_URL}/api/staff/tickets/${ticketId}/actions/${actionId}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(changes),
+    }
+  );
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to save the action");
   }
 
   return response.json();
@@ -894,4 +1011,61 @@ export async function setInitialPassword(
   if (!response.ok) {
     throw await readError(response, "Unable to set the password");
   }
+}
+
+/*
+ * Dashboards (Lab 4). Counts and short lists, calculated by the backend.
+ */
+export interface DashboardTicket {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  currentStatus: TicketStatus;
+}
+
+export interface RequesterDashboardData {
+  openTickets: number;
+  waitingForMe: number;
+  recentlyUpdated: (DashboardTicket & { updatedAt: string })[];
+  recentlyResolved: (DashboardTicket & { resolvedAt: string })[];
+}
+
+export interface StaffDashboardData {
+  unassigned: number;
+  myOpenTickets: number;
+  myOpenActions: number;
+  myOpenActionsList: {
+    actionId: number;
+    ticketId: number;
+    ticketNumber: string;
+    description: string;
+    status: ActionStatus;
+    actionAt: string;
+  }[];
+  countsByStatus: Record<TicketStatus, number>;
+  recentlyUpdated: (DashboardTicket & {
+    owner: { id: number; name: string } | null;
+    updatedAt: string;
+  })[];
+}
+
+// No parameters: the backend uses the session user only.
+export async function getRequesterDashboard(): Promise<RequesterDashboardData> {
+  const response = await apiFetch(`${API_URL}/api/dashboard/requester`);
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to load the dashboard");
+  }
+
+  return response.json();
+}
+
+export async function getStaffDashboard(): Promise<StaffDashboardData> {
+  const response = await apiFetch(`${API_URL}/api/staff/dashboard`);
+
+  if (!response.ok) {
+    throw await readError(response, "Unable to load the dashboard");
+  }
+
+  return response.json();
 }

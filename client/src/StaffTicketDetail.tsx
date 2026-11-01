@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import {
   ApiError,
   Assignee,
@@ -11,11 +11,13 @@ import {
   getStaffTicket,
   updateTicket,
 } from "./api.js";
+import ActionsTaken from "./ActionsTaken.js";
 import AttachmentSection from "./AttachmentSection.js";
 import CommentSection from "./CommentSection.js";
 import Dialog from "./Dialog.js";
 import PriorityBadge from "./PriorityBadge.js";
 import StatusBadge, { statusLabel } from "./StatusBadge.js";
+import StatusTimeline from "./StatusTimeline.js";
 import { allowedTransitions, needsConfirmation } from "./statusRules.js";
 
 interface StaffTicketDetailProps {
@@ -44,6 +46,12 @@ export default function StaffTicketDetail({
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [problem, setProblem] = useState("");
+  // Lab 4: the resolution gate message and the stale update message.
+  const [gate, setGate] = useState("");
+  const [stale, setStale] = useState(false);
+  // Changing the key reloads the Actions Taken and the Status Timeline.
+  const [refreshKey, setRefreshKey] = useState(0);
+  const gateId = useId();
 
   function resetDrafts(loaded: StaffTicketDetailData) {
     setOwnerDraft(loaded.owner ? String(loaded.owner.id) : "");
@@ -53,6 +61,8 @@ export default function StaffTicketDetail({
 
   async function load() {
     setState("loading");
+    setStale(false);
+    setGate("");
 
     try {
       const [loaded, people] = await Promise.all([
@@ -129,6 +139,7 @@ export default function StaffTicketDetail({
   function handleSave() {
     setMessage("");
     setProblem("");
+    setGate("");
 
     // Resolving, closing, or cancelling is confirmed before anything is saved.
     if (statusChosen && needsConfirmation(statusDraft as TicketStatus)) {
@@ -141,55 +152,80 @@ export default function StaffTicketDetail({
 
   /**
    * Saves owner and priority first (a status change needs an owner), then
-   * the status. If the status is refused, the earlier changes stay saved.
+   * the status. Each save sends the version the screen has; the owner and
+   * priority save returns the new version for the status change. If the
+   * status is refused, the earlier changes stay saved.
    */
   async function saveChanges(confirm: boolean) {
     setConfirming(false);
     setSaving(true);
     setMessage("");
     setProblem("");
+    setGate("");
+    setStale(false);
 
+    let version = current.version;
     let savedOwnerOrPriority = false;
 
     try {
       if (ownerChanged || priorityChanged) {
-        await updateTicket(ticketId, {
-          ...(ownerChanged
-            ? { ownerId: ownerDraft === "" ? null : Number(ownerDraft) }
-            : {}),
-          ...(priorityChanged ? { itPriority: priorityDraft } : {}),
-        });
+        const saved = await updateTicket(
+          ticketId,
+          {
+            ...(ownerChanged
+              ? { ownerId: ownerDraft === "" ? null : Number(ownerDraft) }
+              : {}),
+            ...(priorityChanged ? { itPriority: priorityDraft } : {}),
+          },
+          version
+        );
+        version = saved.version;
         savedOwnerOrPriority = true;
       }
 
       if (statusChosen) {
-        await changeStatus(ticketId, statusDraft as TicketStatus, confirm);
+        await changeStatus(ticketId, statusDraft as TicketStatus, confirm, version);
       }
 
       setMessage("Changes saved.");
+      setRefreshKey((key) => key + 1);
     } catch (error) {
-      // Rule messages from the server (for example "Assign an owner
-      // before changing the status.") are safe and written for the user.
-      const reason =
-        error instanceof ApiError && error.status === 409
-          ? error.message
-          : "Unable to save the changes. Please try again.";
-
-      setProblem(
-        savedOwnerOrPriority && statusChosen
-          ? `Owner and priority were saved, but the status was not changed. ${reason}`
-          : reason
-      );
-    } finally {
-      setSaving(false);
-
-      try {
-        const reloaded = await getStaffTicket(ticketId);
-        setTicket(reloaded);
-        resetDrafts(reloaded);
-      } catch {
-        // The screen keeps what it already shows.
+      // Someone else saved first: keep the user's choices until Reload.
+      if (error instanceof ApiError && error.code === "STALE_UPDATE") {
+        setStale(true);
+        setSaving(false);
+        return;
       }
+
+      if (error instanceof ApiError && error.code === "OPEN_ACTIONS_EXIST") {
+        setGate(error.message);
+        if (savedOwnerOrPriority) {
+          setProblem("Owner and priority were saved, but the status was not changed.");
+        }
+      } else {
+        // Rule messages from the server (for example "Assign an owner
+        // before changing the status.") are safe and written for the user.
+        const reason =
+          error instanceof ApiError && error.status === 409
+            ? error.message
+            : "Unable to save the changes. Please try again.";
+
+        setProblem(
+          savedOwnerOrPriority && statusChosen
+            ? `Owner and priority were saved, but the status was not changed. ${reason}`
+            : reason
+        );
+      }
+    }
+
+    setSaving(false);
+
+    try {
+      const reloaded = await getStaffTicket(ticketId);
+      setTicket(reloaded);
+      resetDrafts(reloaded);
+    } catch {
+      // The screen keeps what it already shows.
     }
   }
 
@@ -282,6 +318,19 @@ export default function StaffTicketDetail({
             <div className="card-body p-4">
               <h2 className="h5 mb-4">Ticket Handling</h2>
 
+              {stale && (
+                <div className="alert alert-warning" role="alert">
+                  This ticket was changed by someone else. Reload to see the
+                  latest version.{" "}
+                  <button
+                    type="button"
+                    className="btn btn-link p-0 align-baseline"
+                    onClick={() => void load()}
+                  >
+                    Reload
+                  </button>
+                </div>
+              )}
               {message && (
                 <div className="alert alert-success" role="status">
                   {message}
@@ -366,6 +415,7 @@ export default function StaffTicketDetail({
                     id="statusSelect"
                     className="form-select"
                     disabled={saving}
+                    aria-describedby={gate ? gateId : undefined}
                     value={statusDraft}
                     onChange={(event) => setStatusDraft(event.target.value)}
                   >
@@ -378,6 +428,11 @@ export default function StaffTicketDetail({
                       </option>
                     ))}
                   </select>
+                )}
+                {gate && (
+                  <div id={gateId} className="alert alert-warning mt-2 mb-0" role="alert">
+                    {gate}
+                  </div>
                 )}
               </div>
 
@@ -404,6 +459,15 @@ export default function StaffTicketDetail({
           </div>
         </div>
       </div>
+
+      <ActionsTaken
+        key={`actions-${refreshKey}`}
+        ticketId={current.id}
+        mode="staff"
+        currentUserId={currentUser.id}
+      />
+
+      <StatusTimeline key={`history-${refreshKey}`} ticketId={current.id} mode="staff" />
 
       <AttachmentSection ticketId={current.id} readOnly />
 

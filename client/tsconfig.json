@@ -12,5 +12,5 @@
     "types": ["vitest/globals", "@testing-library/jest-dom"]
   },
   "include": ["src", "tests"],
-  "exclude": ["tests/lab-02"]
+  "exclude": ["tests/lab-02", "tests/lab-03"]
 }

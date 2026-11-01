@@ -10,6 +10,7 @@ import {
 } from "./api.js";
 import PriorityBadge from "./PriorityBadge.js";
 import StatusBadge, { STATUS_OPTIONS } from "./StatusBadge.js";
+import ActiveChip from "./ActiveChip.js";
 
 export type SortChoice =
   | "default"
@@ -37,6 +38,8 @@ export interface QueueFilters {
   owner: string;
   sortChoice: SortChoice;
   page: number;
+  /** Lab 4: set by the dashboard; it has no dropdown, only a chip. */
+  statusGroup?: "active";
 }
 
 export const EMPTY_FILTERS: QueueFilters = {
@@ -82,6 +85,7 @@ export default function StaffTicketQueue({
     initialFilters.sortChoice
   );
   const [page, setPage] = useState(initialFilters.page);
+  const [statusGroup, setStatusGroup] = useState(initialFilters.statusGroup);
 
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -97,9 +101,10 @@ export default function StaffTicketQueue({
           itPriority ||
           categoryId ||
           owner ||
+          statusGroup ||
           sortChoice !== "default"
       ),
-    [appliedSearch, status, itPriority, categoryId, owner, sortChoice]
+    [appliedSearch, status, itPriority, categoryId, owner, statusGroup, sortChoice]
   );
 
   useEffect(() => {
@@ -135,8 +140,9 @@ export default function StaffTicketQueue({
       owner,
       sortChoice,
       page,
+      statusGroup,
     });
-  }, [appliedSearch, status, itPriority, categoryId, owner, sortChoice, page]);
+  }, [appliedSearch, status, itPriority, categoryId, owner, statusGroup, sortChoice, page]);
 
   useEffect(() => {
     let cancelled = false;
@@ -149,6 +155,7 @@ export default function StaffTicketQueue({
         const result = await getStaffTickets({
           search: appliedSearch || undefined,
           status: status || undefined,
+          statusGroup,
           itPriority: itPriority || undefined,
           categoryId: categoryId ? Number(categoryId) : undefined,
           ownerId:
@@ -178,7 +185,7 @@ export default function StaffTicketQueue({
     return () => {
       cancelled = true;
     };
-  }, [appliedSearch, status, itPriority, categoryId, owner, sortChoice, page, reload]);
+  }, [appliedSearch, status, itPriority, categoryId, owner, statusGroup, sortChoice, page, reload]);
 
   function clearFilters() {
     setSearch("");
@@ -187,6 +194,7 @@ export default function StaffTicketQueue({
     setItPriority("");
     setCategoryId("");
     setOwner("");
+    setStatusGroup(undefined);
     setSortChoice("default");
     setPage(1);
   }
@@ -334,6 +342,15 @@ export default function StaffTicketQueue({
               </button>
             </div>
           </div>
+
+          {statusGroup && (
+            <ActiveChip
+              onRemove={() => {
+                setStatusGroup(undefined);
+                setPage(1);
+              }}
+            />
+          )}
         </div>
       </div>
 
