@@ -179,19 +179,19 @@ I fill in Result after inspection, using the screenshots above.
 
 | Item | Screen | Viewport | Result |
 |---|---|---|---|
-| Design consistency with Labs 2 and 3 (colours, buttons, cards, spacing) | all Lab 4 screens | all | |
-| Dashboard item shown and marked active | shell | desktop, mobile | |
-| Cards show label and value; names include the value | both dashboards | all | |
-| Status block and lists are readable | IT Staff Dashboard | all | |
-| Actions: table on desktop and tablet, cards on mobile | Staff Ticket Detail | all | |
-| Editable and read-only fields look different | Actions Taken panel | desktop, mobile | |
-| Validation under the field; other errors at the top | Actions Taken panel | desktop, mobile | |
-| Gate and stale messages are clear and keep input | Staff Ticket Detail | desktop | |
-| Status, priority, and private vs shared content look different | Ticket Detail | desktop, mobile | |
-| Keyboard reach and visible focus | all Lab 4 screens | desktop | |
-| No clipping | all Lab 4 screens | all | |
-| No overlap | all Lab 4 screens | all | |
-| No horizontal overflow | all Lab 4 screens | all | |
+| Design consistency with Labs 2 and 3 (colours, buttons, cards, spacing) | all Lab 4 screens | all | Pass |
+| Dashboard item shown and marked active | shell | desktop, mobile | Pass |
+| Cards show label and value; names include the value | both dashboards | all | Pass |
+| Status block and lists are readable | IT Staff Dashboard | all | Pass |
+| Actions: table on desktop and tablet, cards on mobile | Staff Ticket Detail | all | Pass |
+| Editable and read-only fields look different | Actions Taken panel | desktop, mobile | Pass |
+| Validation under the field; other errors at the top | Actions Taken panel | desktop, mobile | Pass |
+| Gate and stale messages are clear and keep input | Staff Ticket Detail | desktop | Pass |
+| Status, priority, and private vs shared content look different | Ticket Detail | desktop, mobile | Pass |
+| Keyboard reach and visible focus | all Lab 4 screens | desktop | Fixed: Action Date and Time had no focus ring; now Pass (STYLE-02) |
+| No clipping | all Lab 4 screens | all | Pass |
+| No overlap | all Lab 4 screens | all | Pass |
+| No horizontal overflow | all Lab 4 screens | all | Pass |
 
 ## 12. Traceability
 
