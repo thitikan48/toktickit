@@ -296,16 +296,16 @@ Same conventions as Lab 3: session cookie and `{ error: { code, message, fields?
 
 ## 10. Definition of Done
 
-- [ ] FR-01 to FR-25 are implemented, and nothing from the excluded scope is added.
-- [ ] Every action and workflow write is checked by the backend (role, ownership, gate, version) and tested by direct API calls; dashboard metrics match section 5.5 and direct database queries.
-- [ ] The migration keeps earlier data, the down-SQL is tested, and the seed gives the section 7.4 values.
-- [ ] Tests use `toktickit_test`, and the development database is unchanged after a test run.
-- [ ] Every AC maps to a passing test in `tests.md`; all Lab 4 tests pass with none skipped, including the regression tests.
-- [ ] The UI follows `ui-spec.md`, the screenshots are under `artifacts/lab-04/screenshots/`, and the visual checklist is filled in.
-- [ ] The README covers `server/.env.test`, migration, the down-SQL recovery, seed accounts, test commands, and the demo.
-- [ ] No secret, password, or hash appears in the repository, logs, or responses.
-- [ ] The four Lab 4 documents are merged before the main implementation PRs.
-- [ ] GitHub Issues #1 to #6 are Done; work is merged from feature branches into `lab4-staging` and then `main` through reviewed PRs; `reviewer.md` and `ai-use.md` are complete.
+- [x] FR-01 to FR-25 are implemented, and nothing from the excluded scope is added.
+- [x] Every action and workflow write is checked by the backend (role, ownership, gate, version) and tested by direct API calls; dashboard metrics match section 5.5 and direct database queries.
+- [x] The migration keeps earlier data, the down-SQL is tested, and the seed gives the section 7.4 values.
+- [x] Tests use `toktickit_test`, and the development database is unchanged after a test run.
+- [x] Every AC maps to a passing test in `tests.md`; all Lab 4 tests pass with none skipped, including the regression tests.
+- [x] The UI follows `ui-spec.md`, the screenshots are under `artifacts/lab-04/screenshots/`, and the visual checklist is filled in.
+- [x] The README covers `server/.env.test`, migration, the down-SQL recovery, seed accounts, test commands, and the demo.
+- [x] No secret, password, or hash appears in the repository, logs, or responses.
+- [x] The four Lab 4 documents are merged before the main implementation PRs.
+- [x] GitHub Issues #1 to #6 are Done; work is merged from feature branches into `lab4-staging` and then `main` through reviewed PRs; `reviewer.md` and `ai-use.md` are complete.
 
 ## 11. Assumptions and Decisions
 

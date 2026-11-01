@@ -13,7 +13,7 @@
 | [#50](https://github.com/thitikan48/toktickit/pull/50) | [#41](https://github.com/thitikan48/toktickit/issues/41) | `feature/lab4-actions-ui` | Actions Taken UI on both Ticket Details | Approved |
 | [#51](https://github.com/thitikan48/toktickit/pull/51) | [#42](https://github.com/thitikan48/toktickit/issues/42) | `feature/lab4-workflow` | Ticket workflow: resolution gate, status history, `resolvedAt`, stale update check | Approved |
 | [#52](https://github.com/thitikan48/toktickit/pull/52) | [#43](https://github.com/thitikan48/toktickit/issues/43) | `feature/lab4-dashboards` | Requester and IT Staff Dashboards, `statusGroup=active` filter | Approved |
-| [#53](https://github.com/thitikan48/toktickit/pull/53) | [#44](https://github.com/thitikan48/toktickit/issues/44) | `feature/lab4-hardening` | Regression and performance tests, visual checklist, cleanup, documentation | (fill in) |
+| [#53](https://github.com/thitikan48/toktickit/pull/53) | [#44](https://github.com/thitikan48/toktickit/issues/44) | `feature/lab4-hardening` | Regression and performance tests, visual checklist, cleanup, documentation | Approved |
 
 ```
 Issue 4-1: Sprint 4 engineering contract(PR#48)
@@ -37,8 +37,8 @@ Reviewer comment I received: All good!
 How I responded: That's great, thank you!
 
 Issue 4-6: Final hardening(PR#53)
-Reviewer comment I received: 
-How I responded: 
+Reviewer comment I received: Excellent
+How I responded: Thank you! Appreciate it.
 ```
 
 ## Pull Requests I reviewed for my partner

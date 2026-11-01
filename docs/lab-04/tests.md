@@ -96,7 +96,7 @@
 | REG-05 | Regression | AC-29 | Ticket Queue filters; owner and IT Priority update with `expectedVersion` | Lab 3 results; update works | `regression.api.test.ts` | Pass |
 | REG-06 | Regression | AC-29 | User management: create, edit, last Administrator rule | Lab 3 results; `409` for the last Administrator | `regression.api.test.ts` | Pass |
 | REG-07 | Regression | AC-31 | Forced database error on each Lab 4 endpoint | `500 SERVER_ERROR` with a generic message | `regression.api.test.ts` | Pass |
-| REG-08 | Regression | AC-28 | `DATABASE_URL` seen by the tests; development database row counts before and after a full run | Points to `toktickit_test`; development counts identical (manual compare, section 5) | `regression.api.test.ts` and manual | Pass (automated part); manual compare in section 6 |
+| REG-08 | Regression | AC-28 | `DATABASE_URL` seen by the tests; development database row counts before and after a full run | Points to `toktickit_test`; development counts identical (manual compare, section 5) | `regression.api.test.ts` and manual | Pass |
 | PERF-01 | Performance | AC-35 | `GET /api/dashboard/requester` and `GET /api/staff/dashboard` on the seeded test database | Each under 1000 ms | `server/tests/lab-04/performance-smoke.test.ts` | Pass |
 | PERF-02 | Performance | AC-35 | `GET /api/staff/tickets/:id/actions` for TKT-2026-900003 | Under 1000 ms | `performance-smoke.test.ts` | Pass |
 
@@ -201,11 +201,12 @@ Run on 2026-11-01 on branch `feature/lab4-hardening`, before the release merge i
 | Server | `cd server && npm test` | 46 | 46 | 0 | 0 | 2026-11-01 |
 | Client | `cd client && npm test` | 26 | 26 | 0 | 0 | 2026-11-01 |
 | E2E | `npx playwright test` | 11 | 11 | 0 | 0 | 2026-11-01 |
-| Development database unchanged (REG-08) | manual | | | | | to do |
+| Development database unchanged (REG-08) | manual, read-only queries on `toktickit` | 10 values | 10 identical | 0 | | 2026-11-01 |
 | Visual checklist (RESP-03) | manual, with Playwright | 1 problem | fixed | 0 | | 2026-11-01 |
 
 - The 83 automated tests cover all 79 automated IDs. UI-12, UI-14, STYLE-02, and AUTHZ-04 have two tests each (AUTHZ-04 is split over the two dashboard files as planned; the others were added when a check found a gap).
 - RESP-03: every Lab 4 screen was checked at 1440 × 900, 768 × 1024, and 375 × 812 for sideways scroll, clipped or off-screen content, loading, empty, and error states, and visible keyboard focus. The only problem was the Action Date and Time field, which showed no focus ring in Chromium. It now shows the same ring as the other fields (STYLE-02, second test).
+- REG-08: on 2026-11-01 (branch `docs/lab04-final`) the rows in User, Ticket, Attachment, TicketComment, TicketInternalNote, ActionTaken, and TicketStatusHistory were counted in `toktickit`, together with the latest `updatedAt` of Ticket, User, and ActionTaken. A read-only session was used before and after the three commands above, which passed again (46, 26, 11). All 10 values were identical: 11 users, 32 Tickets, 3 attachments, 7 comments, 4 notes, 14 actions, 1 history row.
 - The Lab 1 to 3 tests that fail because Lab 3 or Lab 4 changed the requirement are listed in `reviewer.md`.
 
 ## 7. Known Limitations or Deferred Tests
