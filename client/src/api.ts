@@ -165,43 +165,6 @@ export interface Category {
   name: string;
 }
 
-export interface SystemStatus {
-  online: boolean;
-  categories: Category[];
-}
-
-export async function checkSystem(): Promise<SystemStatus> {
-  const healthResponse = await apiFetch(
-    `${API_URL}/api/health`
-  );
-
-  if (!healthResponse.ok) {
-    throw new Error(
-      "Unable to connect to TokTickIT API"
-    );
-  }
-
-  await healthResponse.json();
-
-  const categoriesResponse = await apiFetch(
-    `${API_URL}/api/categories`
-  );
-
-  if (!categoriesResponse.ok) {
-    throw new Error(
-      "Unable to load categories"
-    );
-  }
-
-  const categories: Category[] =
-    await categoriesResponse.json();
-
-  return {
-    online: true,
-    categories,
-  };
-}
-
 export interface RelatedSystem {
   id: number;
   name: string;
@@ -326,7 +289,7 @@ export interface TicketListItem {
 }
 
 /*
- * Issue 5: Requester Ticket Detail
+ * Requester Ticket Detail
  */
 export interface TicketDetail
   extends TicketListItem {
@@ -430,7 +393,7 @@ export async function getTickets(
 }
 
 /*
- * Issue 5: Load one owned Ticket
+ * Load one owned Ticket
  */
 export async function getTicketById(
   ticketId: number

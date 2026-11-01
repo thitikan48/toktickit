@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ActionsTaken from "../../src/ActionsTaken.js";
 import ActionStatusBadge from "../../src/ActionStatusBadge.js";
@@ -364,5 +364,17 @@ describe("Style", () => {
     const description = within(panel).getByLabelText(/^action description/i);
     expect(description).toHaveAttribute("readonly");
     expect(description.style.backgroundColor).toBe("rgb(238, 243, 240)");
+  });
+
+  it("STYLE-02 shows a focus ring on the Action Date and Time field (found in the Issue #6 checklist)", async () => {
+    renderStaff();
+    await userEvent.click(await screen.findByRole("button", { name: "Add Action" }));
+    const date = within(screen.getByRole("group", { name: "Add Action" })).getByLabelText(/^action date and time/i);
+
+    expect(date.style.boxShadow).toBe("");
+    act(() => date.focus());
+    expect(date.style.boxShadow).not.toBe("");
+    act(() => date.blur());
+    expect(date.style.boxShadow).toBe("");
   });
 });

@@ -2,8 +2,6 @@
 
 ## 1. Scope and References
 
-This extends [`docs/lab-02/ui-spec.md`](../lab-02/ui-spec.md) and [`docs/lab-03/ui-spec.md`](../lab-03/ui-spec.md). Anything not written here works as before. Rules are in [`specification.md`](specification.md), and request and response shapes are in [`api-spec.md`](api-spec.md).
-
 | Screen | Change |
 |---|---|
 | Shell and navigation | new Dashboard item, first screen after login |

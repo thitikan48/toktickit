@@ -1,7 +1,5 @@
 # Lab 4 REST API Specification
 
-This extends [`docs/lab-03/api-spec.md`](../lab-03/api-spec.md). Everything in Lab 3 still holds unless this file says otherwise. FR, BR, and AC IDs refer to [`specification.md`](specification.md).
-
 ## 1. Conventions
 
 - **Base path:** `/api`, JSON bodies. Login, the session cookie, and the password change rule are the same as Lab 3.

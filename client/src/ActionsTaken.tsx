@@ -56,6 +56,12 @@ const ATTACHMENT_NOTES_MAX = 500;
 
 const PRIMARY = { backgroundColor: "#006B3C", borderColor: "#006B3C" };
 const READ_ONLY = { backgroundColor: "#EEF3F0" };
+// Chromium does not show the Bootstrap focus ring on a datetime-local input
+// (focus sits on its date and time parts), so the ring is set while focused.
+const FOCUS_RING = {
+  borderColor: "#86b7fe",
+  boxShadow: "0 0 0 0.25rem rgba(13, 110, 253, 0.25)",
+};
 
 // Times are stored in UTC and shown in Bangkok time.
 const DATE_FORMAT = new Intl.DateTimeFormat("en-GB", {
@@ -118,6 +124,7 @@ export default function ActionsTaken({
 
   // The ref blocks a second click before React has re-rendered the button.
   const [saving, setSaving] = useState(false);
+  const [dateFocused, setDateFocused] = useState(false);
   const savingRef = useRef(false);
 
   async function load() {
@@ -357,6 +364,9 @@ export default function ActionsTaken({
               className={`form-control ${props.className}`}
               disabled={saving}
               value={values.actionAt}
+              style={dateFocused ? FOCUS_RING : undefined}
+              onFocus={() => setDateFocused(true)}
+              onBlur={() => setDateFocused(false)}
               onChange={(event) => setValue("actionAt", event.target.value)}
             />
           ),
